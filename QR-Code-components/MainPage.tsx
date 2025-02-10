@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { StatusBar, Platform } from "react-native";
 import { Box } from "../components/ui";
-import { Header } from "../components/Header";
+import { Header } from "./components/Header";
 import { mockUser, mockLocations, currentLocation } from "../data/mockData";
 import { Location } from "../types";
 import MobileBottomTabs from "./MobileBottomTabs";

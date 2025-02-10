@@ -9,14 +9,14 @@ import {
   Badge,
   BadgeText,
   BadgeIcon,
-} from "../components/ui";
+} from "../../components/ui";
 import {
   ChevronDown,
   Activity,
   Settings,
   GlobeIcon,
 } from "lucide-react-native";
-import { Location } from "../types";
+import { Location } from "../../types";
 
 interface HeaderProps {
   currentLocation: Location;
