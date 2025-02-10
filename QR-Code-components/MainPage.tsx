@@ -51,15 +51,13 @@ const MainPage = () => {
         <StatusBar />
 
         <Box className="flex-1">
-          {activeTab !== "Settings" && (
-            <Header
-              currentLocation={selectedLocation}
-              onLocationChange={handleLocationChange}
-              locations={mockLocations}
-              userName={mockUser.name}
-              userRole={mockUser.role}
-            />
-          )}
+          <Header
+            currentLocation={selectedLocation}
+            onLocationChange={handleLocationChange}
+            locations={mockLocations}
+            userName={mockUser.name}
+            userRole={mockUser.role}
+          />
           {activeTab === "Dashboard" && <Dashboard />}
           {activeTab === "QR Codes" && <QRCodes />}
           {activeTab === "Schedules" && <Schedules />}
