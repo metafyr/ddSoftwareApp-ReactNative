@@ -9,7 +9,7 @@ import {
   Badge,
   BadgeText,
   BadgeIcon,
-} from "../../components/ui";
+} from "@/components/ui";
 import {
   ChevronDown,
   Activity,

@@ -7,6 +7,7 @@ module.exports = {
     "./kitchensink-components/**/**/*.{html,js,jsx,ts,tsx}",
     "./components/**/*.{html,js,jsx,ts,tsx}",
     "./components/ui/**/*.{html,js,jsx,ts,tsx}",
+    "./QR-Code-components/**/*.{html,js,jsx,ts,tsx}",
     "./App.{html,js,jsx,ts,tsx}",
   ],
   presets: [require("nativewind/preset")],
