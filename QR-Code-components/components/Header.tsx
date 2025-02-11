@@ -37,9 +37,18 @@ export function Header({
 }: HeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+  // Return null if activeTab is Settings
+  if (activeTab === "Settings") {
+    return null;
+  }
+
   return (
     <Box className="z-50">
-      <Box className={`bg-primary-600 px-4 ${activeTab === "Dashboard" ? "pt-8 pb-4" : "py-4"}`}>
+      <Box
+        className={`bg-primary-600 px-4 ${
+          activeTab === "Dashboard" ? "pt-8 pb-4" : "py-4"
+        }`}
+      >
         {activeTab === "Dashboard" && (
           <HStack className="justify-between mb-3">
             <HStack space="md">
@@ -66,7 +75,9 @@ export function Header({
           </HStack>
         )}
 
-        <Box className={`relative ${activeTab === "Dashboard" ? "mt-3" : "mt-0"}`}>
+        <Box
+          className={`relative ${activeTab === "Dashboard" ? "mt-3" : "mt-0"}`}
+        >
           <Pressable
             className="bg-white/10 rounded-xl p-3"
             onPress={() => setIsDropdownOpen(!isDropdownOpen)}
