@@ -11,12 +11,36 @@ import SwipeableQRCode from "../components/SwipeableQRCode";
 import AddQRCodeModal from "../components/AddQRCodeModal";
 import { mockQRCodes } from "../../data/mockData";
 import { Search, Plus } from "lucide-react-native";
+import QRCodeDetails from "./QRCodeDetails";
+import { QRCode } from "@/types";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+
+// Define the navigation param list type
+type RootStackParamList = {
+  Main: undefined;
+  QRCodeDetails: { qrId: string };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const QRCodes = () => {
+  const navigation = useNavigation<NavigationProp>();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  const handleAddQR = (data: { name: string; enabledFunctions: { files: boolean; schedules: boolean } }) => {
+  // Remove selectedQRCode state as we'll use navigation instead
+
+  // Add the filtering logic
+  const filteredQRCodes = mockQRCodes.filter((qrCode) =>
+    qrCode.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleAddQR = (data: {
+    name: string;
+    enabledFunctions: { files: boolean; schedules: boolean };
+  }) => {
     // TODO: Implement API call
     console.log("Adding new QR code:", data);
   };
@@ -31,15 +55,11 @@ const QRCodes = () => {
     console.log("Delete QR Code:", qrCode);
   };
 
-  const handleQRCodeClick = (qrCode: any) => {
-    // TODO: Implement QR code click functionality
-    console.log("QR Code clicked:", qrCode);
+  const handleQRCodeClick = (qrCode: QRCode) => {
+    navigation.navigate("QRCodeDetails", { qrId: qrCode.id });
   };
 
-  // Filter QR codes based on search query
-  const filteredQRCodes = mockQRCodes.filter((qrCode) =>
-    qrCode.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Remove handleBack and conditional rendering of QRCodeDetails
 
   return (
     <Box className="flex-1 bg-background-50">

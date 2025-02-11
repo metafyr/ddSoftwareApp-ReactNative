@@ -33,7 +33,10 @@ export interface File {
   isPublic: boolean;
   createdAt: string;
   size: number; // in bytes
+  type: FileType;
 }
+
+export type FileType = "scanned" | "uploaded";
 
 export interface Folder {
   name: string;

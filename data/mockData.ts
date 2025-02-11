@@ -37,6 +37,60 @@ export const mockQRCodes: QRCode[] = [
       files: true,
       schedules: true,
     },
+    folders: [
+      {
+        name: "Maintenance Records",
+        files: [
+          {
+            id: "file1",
+            name: "Jan_Maintenance.pdf",
+            url: "https://example.com/files/jan_maintenance.pdf",
+            isPublic: true,
+            createdAt: "2025-01-15T10:00:00Z",
+            size: 1024576,
+            type: "scanned"
+          },
+          {
+            id: "file2",
+            name: "Feb_Maintenance.pdf",
+            url: "https://example.com/files/feb_maintenance.pdf",
+            isPublic: true,
+            createdAt: "2025-02-15T10:00:00Z",
+            size: 2048576,
+            type: "uploaded"
+          },
+          // Adding more files
+          {
+            id: "file7",
+            name: "Mar_Maintenance.pdf",
+            url: "https://example.com/files/mar_maintenance.pdf",
+            isPublic: true,
+            createdAt: "2025-03-15T10:00:00Z",
+            size: 1548576,
+            type: "scanned"
+          },
+          {
+            id: "file8",
+            name: "Apr_Maintenance.pdf",
+            url: "https://example.com/files/apr_maintenance.pdf",
+            isPublic: true,
+            createdAt: "2025-04-15T10:00:00Z",
+            size: 1748576,
+            type: "uploaded"
+          },
+          {
+            id: "file9",
+            name: "May_Maintenance.pdf",
+            url: "https://example.com/files/may_maintenance.pdf",
+            isPublic: true,
+            createdAt: "2025-05-15T10:00:00Z",
+            size: 1648576,
+            type: "scanned"
+          }
+        ],
+        subfolders: []
+      }
+    ],
     schedules: [
       {
         id: "sch1",
@@ -84,6 +138,74 @@ export const mockQRCodes: QRCode[] = [
       files: true,
       schedules: true,
     },
+    folders: [
+      {
+        name: "Scanned Documents",
+        files: [
+          {
+            id: "file3",
+            name: "Invoice_001.pdf",
+            url: "https://example.com/files/invoice_001.pdf",
+            isPublic: false,
+            createdAt: "2025-02-01T14:30:00Z",
+            size: 512000, // 500KB
+            type: "scanned"
+          },
+          {
+            id: "file4",
+            name: "Invoice_002.pdf",
+            url: "https://example.com/files/invoice_002.pdf",
+            isPublic: false,
+            createdAt: "2025-02-02T15:45:00Z",
+            size: 614400, // 600KB
+            type: "scanned"
+          },
+          {
+            id: "file10",
+            name: "Invoice_003.pdf",
+            url: "https://example.com/files/invoice_003.pdf",
+            isPublic: false,
+            createdAt: "2025-02-03T14:30:00Z",
+            size: 528000,
+            type: "scanned"
+          },
+          {
+            id: "file11",
+            name: "Invoice_004.pdf",
+            url: "https://example.com/files/invoice_004.pdf",
+            isPublic: false,
+            createdAt: "2025-02-04T15:45:00Z",
+            size: 634400,
+            type: "scanned"
+          },
+          {
+            id: "file12",
+            name: "Invoice_005.pdf",
+            url: "https://example.com/files/invoice_005.pdf",
+            isPublic: false,
+            createdAt: "2025-02-05T16:45:00Z",
+            size: 724400,
+            type: "scanned"
+          }
+        ],
+        subfolders: []
+      },
+      {
+        name: "Manuals",
+        files: [
+          {
+            id: "file5",
+            name: "Printer_Manual.pdf",
+            url: "https://example.com/files/printer_manual.pdf",
+            isPublic: true,
+            createdAt: "2025-01-20T09:00:00Z",
+            size: 5242880, // 5MB
+            type: "uploaded"
+          }
+        ],
+        subfolders: []
+      }
+    ],
     schedules: [
       {
         id: "sch3",
@@ -119,6 +241,23 @@ export const mockQRCodes: QRCode[] = [
       files: true,
       schedules: true,
     },
+    folders: [
+      {
+        name: "Equipment Docs",
+        files: [
+          {
+            id: "file6",
+            name: "Projector_Setup.pdf",
+            url: "https://example.com/files/projector_setup.pdf",
+            isPublic: true,
+            createdAt: "2025-02-05T11:20:00Z",
+            size: 3145728, // 3MB
+            type: "uploaded"
+          }
+        ],
+        subfolders: []
+      }
+    ],
     schedules: [
       {
         id: "sch4",

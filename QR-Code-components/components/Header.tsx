@@ -24,6 +24,7 @@ interface HeaderProps {
   locations: Location[];
   userName: string;
   userRole: string;
+  activeTab: string;
 }
 
 export function Header({
@@ -32,37 +33,40 @@ export function Header({
   locations,
   userName,
   userRole,
+  activeTab,
 }: HeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   return (
     <Box className="z-50">
-      <Box className="bg-primary-600 px-4 pt-8 pb-4">
-        <HStack className="justify-between mb-3">
-          <HStack space="md">
-            <Box className="w-10 h-10 bg-white rounded-full items-center justify-center">
-              <Text className="text-primary-600 font-bold">
-                {userName.charAt(0)}
-              </Text>
-            </Box>
-            <VStack>
-              <Text className="text-sm text-primary-100">Welcome back,</Text>
-              <Text className="text-lg font-semibold text-white">
-                {userName}
-              </Text>
-            </VStack>
+      <Box className={`bg-primary-600 px-4 ${activeTab === "Dashboard" ? "pt-8 pb-4" : "py-4"}`}>
+        {activeTab === "Dashboard" && (
+          <HStack className="justify-between mb-3">
+            <HStack space="md">
+              <Box className="w-10 h-10 bg-white rounded-full items-center justify-center">
+                <Text className="text-primary-600 font-bold">
+                  {userName.charAt(0)}
+                </Text>
+              </Box>
+              <VStack>
+                <Text className="text-sm text-primary-100">Welcome back,</Text>
+                <Text className="text-lg font-semibold text-white">
+                  {userName}
+                </Text>
+              </VStack>
+            </HStack>
+            <Badge
+              size="md"
+              variant="solid"
+              action="muted"
+              className="rounded-full bg-primary-400 px-4"
+            >
+              <BadgeText className="text-white font-bold">{userRole}</BadgeText>
+            </Badge>
           </HStack>
-          <Badge
-            size="md"
-            variant="solid"
-            action="muted"
-            className="rounded-full bg-primary-400 px-4"
-          >
-            <BadgeText className="text-white font-bold">{userRole}</BadgeText>
-          </Badge>
-        </HStack>
+        )}
 
-        <Box className="mt-3 relative">
+        <Box className={`relative ${activeTab === "Dashboard" ? "mt-3" : "mt-0"}`}>
           <Pressable
             className="bg-white/10 rounded-xl p-3"
             onPress={() => setIsDropdownOpen(!isDropdownOpen)}
