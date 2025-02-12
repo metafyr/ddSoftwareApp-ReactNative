@@ -1,7 +1,7 @@
 {
   "name": "ui-example-nativewind",
   "version": "1.0.0",
-  "main": "node_modules/expo/AppEntry.js",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "android": "DARK_MODE=media expo run:android",
@@ -59,7 +59,10 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.3",
+    "react-native-document-scanner-plugin": "^1.0.1",
     "react-native-gesture-handler": "^2.23.0",
+    "react-native-permission": "^0.0.1",
+    "react-native-permissions": "^5.2.5",
     "react-native-qrcode-svg": "^6.3.14",
     "react-native-reanimated": "^3.16.7",
     "react-native-safe-area-context": "^5.2.0",

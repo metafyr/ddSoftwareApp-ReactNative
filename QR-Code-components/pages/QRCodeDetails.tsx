@@ -21,6 +21,8 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { mockQRCodes } from "../../data/mockData";
 import QRCodeCard from "../components/QRCodeCard";
 import DocumentsSection from "../components/DocumentsSection";
+import ExpandableFAB from "../components/ExpandableFAB";
+import { useDocumentScanner } from '../../features/document-scanner/DocumentScanner';
 
 type RootStackParamList = {
   Main: undefined;
@@ -85,6 +87,22 @@ const QRCodeDetails = () => {
     }, 3000);
   };
 
+  const { handleScan } = useDocumentScanner({
+    qrCodeId: qrId,
+    onSuccess: (message) => handleDownloadStatus(true, message),
+    onError: (message) => handleDownloadStatus(false, message),
+  });
+
+  const handleUpload = () => {
+    console.log("Upload pressed");
+    // Implement upload functionality
+  };
+
+  const handleSchedule = () => {
+    console.log("Schedule pressed");
+    // Implement schedule functionality
+  };
+
   return (
     <Box className="flex-1 bg-background-50 relative">
       <ScrollView>
@@ -115,6 +133,12 @@ const QRCodeDetails = () => {
           />
         </VStack>
       </ScrollView>
+      
+      <ExpandableFAB
+        onScanPress={handleScan}
+        onUploadPress={handleUpload}
+        onSchedulePress={handleSchedule}
+      />
 
       {showAlert.show && (
         <Box className="absolute bottom-4 left-4 right-4">

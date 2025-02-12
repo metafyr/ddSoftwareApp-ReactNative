@@ -7034,6 +7034,11 @@ react-native-css-interop@0.1.22:
     lightningcss "^1.27.0"
     semver "^7.6.3"
 
+react-native-document-scanner-plugin@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/react-native-document-scanner-plugin/-/react-native-document-scanner-plugin-1.0.1.tgz#65da0627adcde461e9f06d276cd05b3166a940f1"
+  integrity sha512-3/ssZ4AZvAX06Fi4MOwXpuLdPcfASXDE6cYL5tTHSTyCLUifXaednDCeqdpKqk7fVj3bpmvVwoqm0OanQhVdgg==
+
 react-native-gesture-handler@^2.23.0:
   version "2.23.0"
   resolved "https://registry.yarnpkg.com/react-native-gesture-handler/-/react-native-gesture-handler-2.23.0.tgz#f0e77bc6bce94a976ae7917abc748b7b4ce6a490"
@@ -7056,6 +7061,16 @@ react-native-is-edge-to-edge@^1.1.6:
   version "1.1.6"
   resolved "https://registry.yarnpkg.com/react-native-is-edge-to-edge/-/react-native-is-edge-to-edge-1.1.6.tgz#69ec13f70d76e9245e275eed4140d0873a78f902"
   integrity sha512-1pHnFTlBahins6UAajXUqeCOHew9l9C2C8tErnpGC3IyLJzvxD+TpYAixnCbrVS52f7+NvMttbiSI290XfwN0w==
+
+react-native-permission@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/react-native-permission/-/react-native-permission-0.0.1.tgz#8e573a1e937f56b776b6b7ad5b207b9c2f120652"
+  integrity sha512-oyEhhxtLrwxRxg2kPjhuI5D5RBPLQwRPZiJ1vOXoCE1YxYRoJFUgfr+mIE2vJyGQcIY+eFnnq84zxNScBvtt9Q==
+
+react-native-permissions@^5.2.5:
+  version "5.2.5"
+  resolved "https://registry.yarnpkg.com/react-native-permissions/-/react-native-permissions-5.2.5.tgz#c431b7dc15213dd87cebad0ba5658eaf7c30efd3"
+  integrity sha512-pECev4EuA+XAq9kduJu9V5OtqKlOokf+5lawPmkTHvr6LoOl6VLZlI2Ue4tnOu1PLc6tQaG19kQ5gbKG4gyNAw==
 
 react-native-qrcode-svg@^6.3.14:
   version "6.3.14"
