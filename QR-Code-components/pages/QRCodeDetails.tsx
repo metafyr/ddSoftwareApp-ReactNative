@@ -23,7 +23,9 @@ import QRCodeCard from "../components/QRCodeCard";
 import DocumentsSection from "../components/DocumentsSection";
 import ExpandableFAB from "../components/ExpandableFAB";
 import ScheduleSection from "../components/ScheduleSection";
+import ScheduleForm from "../components/ScheduleForm";
 import { useDocumentScanner } from "@/features/document-scanner/DocumentScanner";
+import * as DocumentPicker from "expo-document-picker";
 
 type RootStackParamList = {
   Main: undefined;
@@ -94,85 +96,124 @@ const QRCodeDetails = () => {
     onError: (message) => handleDownloadStatus(false, message),
   });
 
-  const handleUpload = () => {
-    console.log("Upload button clicked");
+  const handleUpload = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/*"], // Allow PDF and image files
+        multiple: true,
+      });
+
+      if (result.canceled) {
+        console.log("User cancelled the upload");
+        return;
+      }
+
+      // Handle successful file selection
+      const files = result.assets;
+      console.log("Selected files:", files);
+
+      // Here you would typically implement your file upload logic
+      handleDownloadStatus(true, "Files selected successfully");
+
+      // TODO: Implement your actual file upload logic here
+      // For example, sending the files to your backend server
+    } catch (error) {
+      console.error("Error picking document:", error);
+      handleDownloadStatus(false, "Error selecting files");
+    }
   };
 
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+
   const handleSchedule = () => {
-    console.log("Schedule button clicked");
+    setShowScheduleForm(true);
   };
 
   const getRelevantSchedules = () => {
-    if (!qrCode?.schedules) return [];
-    return qrCode.schedules;
+    return qrCode?.schedules || [];
   };
 
   return (
     <Box className="flex-1 bg-background-50 relative">
-      <ScrollView>
-        <Box className="p-4 bg-white border-b border-outline-200">
-          <Pressable onPress={handleBack}>
-            <Icon as={ArrowLeft} size="md" color="#0F172A" />
-          </Pressable>
-        </Box>
+      {showScheduleForm ? (
+        <ScheduleForm
+          onClose={() => setShowScheduleForm(false)}
+          qrCodeId={qrId}
+        />
+      ) : (
+        <>
+          <ScrollView>
+            <Box className="p-4 bg-white border-b border-outline-200">
+              <Pressable onPress={handleBack}>
+                <Icon as={ArrowLeft} size="md" color="#0F172A" />
+              </Pressable>
+            </Box>
 
-        <VStack space="md" className="p-4">
-          <QRCodeCard
-            name={qrCode.name}
-            linkedPhysicalQR={qrCode.linkedPhysicalQR}
-          />
-
-          <DocumentsSection
-            title="Scanned Documents"
-            files={getFilesByType("scanned")}
-            onFilePress={handleFilePress}
-            onDownloadStatus={handleDownloadStatus}
-          />
-
-          <DocumentsSection
-            title="Uploaded Documents"
-            files={getFilesByType("uploaded")}
-            onFilePress={handleFilePress}
-            onDownloadStatus={handleDownloadStatus}
-          />
-
-          <ScheduleSection schedules={getRelevantSchedules()} />
-        </VStack>
-
-        {showAlert.show && (
-          <Box className="absolute bottom-4 left-4 right-4">
-            <Alert action={showAlert.type === "success" ? "success" : "error"}>
-              <AlertIcon
-                as={
-                  showAlert.type === "success"
-                    ? CheckCircleIcon
-                    : AlertCircleIcon
-                }
+            <VStack space="md" className="p-4">
+              <QRCodeCard
+                name={qrCode.name}
+                linkedPhysicalQR={qrCode.linkedPhysicalQR}
               />
-              <AlertText>{showAlert.message}</AlertText>
-            </Alert>
-          </Box>
-        )}
-      </ScrollView>
 
-      <ExpandableFAB
-        onScanPress={handleScan}
-        onUploadPress={handleUpload}
-        onSchedulePress={handleSchedule}
-        disabled={isScanning}
-      />
+              <DocumentsSection
+                title="Scanned Documents"
+                files={getFilesByType("scanned")}
+                onFilePress={handleFilePress}
+                onDownloadStatus={handleDownloadStatus}
+              />
 
-      {showAlert.show && (
-        <Box className="absolute bottom-4 left-4 right-4">
-          <Alert action={showAlert.type === "success" ? "success" : "error"}>
-            <AlertIcon
-              as={
-                showAlert.type === "success" ? CheckCircleIcon : AlertCircleIcon
-              }
-            />
-            <AlertText>{showAlert.message}</AlertText>
-          </Alert>
-        </Box>
+              <DocumentsSection
+                title="Uploaded Documents"
+                files={getFilesByType("uploaded")}
+                onFilePress={handleFilePress}
+                onDownloadStatus={handleDownloadStatus}
+              />
+
+              <ScheduleSection schedules={getRelevantSchedules()} />
+            </VStack>
+
+            {showAlert.show && (
+              <Box className="absolute bottom-4 left-4 right-4">
+                <Alert
+                  action={showAlert.type === "success" ? "success" : "error"}
+                >
+                  <AlertIcon
+                    as={
+                      showAlert.type === "success"
+                        ? CheckCircleIcon
+                        : AlertCircleIcon
+                    }
+                  />
+                  <AlertText>{showAlert.message}</AlertText>
+                </Alert>
+              </Box>
+            )}
+          </ScrollView>
+
+          <ExpandableFAB
+            onScanPress={handleScan}
+            onUploadPress={handleUpload}
+            onSchedulePress={handleSchedule}
+            disabled={isScanning}
+          />
+
+          {showAlert.show && (
+            <Box className="absolute bottom-4 left-4 right-4">
+              <Alert
+                action={showAlert.type === "success" ? "success" : "error"}
+              >
+                <AlertIcon
+                  as={
+                    showAlert.type === "success"
+                      ? CheckCircleIcon
+                      : AlertCircleIcon
+                  }
+                />
+                <AlertText>{showAlert.message}</AlertText>
+              </Alert>
+            </Box>
+          )}
+        </>
       )}
     </Box>
   );

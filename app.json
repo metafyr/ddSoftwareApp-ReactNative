@@ -50,6 +50,12 @@
         {
           "cameraPermission": "Camera permission is required to scan documents"
         }
+      ],
+      [
+        "@react-native-community/datetimepicker",
+        {
+          "androidPackage": "com.reactcommunity.rndatetimepicker"
+        }
       ]
     ]
   }
