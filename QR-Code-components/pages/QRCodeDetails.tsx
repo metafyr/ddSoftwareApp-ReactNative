@@ -15,14 +15,15 @@ import {
   CheckCircleIcon,
   AlertCircleIcon,
 } from "lucide-react-native";
-import { File, QRCode } from "../../types";
+import { File, QRCode, Schedule } from "../../types";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { mockQRCodes } from "../../data/mockData";
 import QRCodeCard from "../components/QRCodeCard";
 import DocumentsSection from "../components/DocumentsSection";
 import ExpandableFAB from "../components/ExpandableFAB";
-import { useDocumentScanner } from '../../features/document-scanner/DocumentScanner';
+import ScheduleSection from "../components/ScheduleSection";
+import { useDocumentScanner } from "@/features/document-scanner/DocumentScanner";
 
 type RootStackParamList = {
   Main: undefined;
@@ -87,20 +88,23 @@ const QRCodeDetails = () => {
     }, 3000);
   };
 
-  const { handleScan } = useDocumentScanner({
+  const { handleScan, isScanning } = useDocumentScanner({
     qrCodeId: qrId,
     onSuccess: (message) => handleDownloadStatus(true, message),
     onError: (message) => handleDownloadStatus(false, message),
   });
 
   const handleUpload = () => {
-    console.log("Upload pressed");
-    // Implement upload functionality
+    console.log("Upload button clicked");
   };
 
   const handleSchedule = () => {
-    console.log("Schedule pressed");
-    // Implement schedule functionality
+    console.log("Schedule button clicked");
+  };
+
+  const getRelevantSchedules = () => {
+    if (!qrCode?.schedules) return [];
+    return qrCode.schedules;
   };
 
   return (
@@ -131,13 +135,31 @@ const QRCodeDetails = () => {
             onFilePress={handleFilePress}
             onDownloadStatus={handleDownloadStatus}
           />
+
+          <ScheduleSection schedules={getRelevantSchedules()} />
         </VStack>
+
+        {showAlert.show && (
+          <Box className="absolute bottom-4 left-4 right-4">
+            <Alert action={showAlert.type === "success" ? "success" : "error"}>
+              <AlertIcon
+                as={
+                  showAlert.type === "success"
+                    ? CheckCircleIcon
+                    : AlertCircleIcon
+                }
+              />
+              <AlertText>{showAlert.message}</AlertText>
+            </Alert>
+          </Box>
+        )}
       </ScrollView>
-      
+
       <ExpandableFAB
         onScanPress={handleScan}
         onUploadPress={handleUpload}
         onSchedulePress={handleSchedule}
+        disabled={isScanning}
       />
 
       {showAlert.show && (

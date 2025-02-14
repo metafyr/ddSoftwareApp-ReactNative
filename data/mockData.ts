@@ -48,7 +48,7 @@ export const mockQRCodes: QRCode[] = [
             isPublic: true,
             createdAt: "2025-01-15T10:00:00Z",
             size: 1024576,
-            type: "scanned"
+            type: "scanned",
           },
           {
             id: "file2",
@@ -57,7 +57,7 @@ export const mockQRCodes: QRCode[] = [
             isPublic: true,
             createdAt: "2025-02-15T10:00:00Z",
             size: 2048576,
-            type: "uploaded"
+            type: "uploaded",
           },
           // Adding more files
           {
@@ -67,7 +67,7 @@ export const mockQRCodes: QRCode[] = [
             isPublic: true,
             createdAt: "2025-03-15T10:00:00Z",
             size: 1548576,
-            type: "scanned"
+            type: "scanned",
           },
           {
             id: "file8",
@@ -76,7 +76,7 @@ export const mockQRCodes: QRCode[] = [
             isPublic: true,
             createdAt: "2025-04-15T10:00:00Z",
             size: 1748576,
-            type: "uploaded"
+            type: "uploaded",
           },
           {
             id: "file9",
@@ -85,11 +85,11 @@ export const mockQRCodes: QRCode[] = [
             isPublic: true,
             createdAt: "2025-05-15T10:00:00Z",
             size: 1648576,
-            type: "scanned"
-          }
+            type: "scanned",
+          },
         ],
-        subfolders: []
-      }
+        subfolders: [],
+      },
     ],
     schedules: [
       {
@@ -113,6 +113,8 @@ export const mockQRCodes: QRCode[] = [
             notes: "All systems functioning normally",
           },
         ],
+        nextOccurrence: "2025-02-17",
+        status: "upcoming",
       },
       {
         id: "sch2",
@@ -125,6 +127,131 @@ export const mockQRCodes: QRCode[] = [
           name: "Main Office",
         },
         isPublic: true,
+        nextOccurrence: "2025-03-15",
+        status: "upcoming",
+      },
+      {
+        id: "sch5",
+        title: "Security Audit",
+        date: "2025-02-08",
+        startTime: "14:00",
+        endTime: "16:00",
+        isAllDay: false,
+        repeat: "monthly",
+        location: {
+          id: 1,
+          name: "Main Office",
+        },
+        isPublic: true,
+        results: [
+          {
+            id: "res4",
+            date: "2025-02-08",
+            status: "pending",
+          },
+        ],
+        nextOccurrence: "2025-03-08",
+        status: "today",
+      },
+      {
+        id: "sch6",
+        title: "Backup Check",
+        date: "2025-02-05",
+        startTime: "11:00",
+        endTime: "12:00",
+        isAllDay: false,
+        repeat: "weekly",
+        location: {
+          id: 1,
+          name: "Main Office",
+        },
+        isPublic: true,
+        nextOccurrence: "2025-02-12",
+        status: "today",
+      },
+      {
+        id: "sch7",
+        title: "Performance Review",
+        date: "2025-02-20",
+        isAllDay: true,
+        repeat: "never",
+        location: {
+          id: 1,
+          name: "Main Office",
+        },
+        isPublic: false,
+        nextOccurrence: "2025-02-20",
+        status: "upcoming",
+      },
+      {
+        id: "sch8",
+        title: "Hardware Inventory",
+        date: "2025-02-07",
+        startTime: "10:00",
+        endTime: "12:00",
+        isAllDay: false,
+        repeat: "monthly",
+        location: {
+          id: 1,
+          name: "Main Office",
+        },
+        isPublic: true,
+        results: [
+          {
+            id: "res5",
+            date: "2025-02-07",
+            status: "pending",
+            notes: "Waiting for IT team availability",
+          },
+        ],
+        nextOccurrence: "2025-03-07",
+        status: "overdue",
+      },
+      {
+        id: "sch9",
+        title: "Network Maintenance",
+        date: "2025-02-09",
+        startTime: "15:00",
+        endTime: "17:00",
+        isAllDay: false,
+        repeat: "weekly",
+        location: {
+          id: 2,
+          name: "Downtown Branch",
+        },
+        isPublic: true,
+        results: [
+          {
+            id: "res6",
+            date: "2025-02-09",
+            status: "pending",
+          },
+        ],
+        nextOccurrence: "2025-02-16",
+        status: "overdue",
+      },
+      {
+        id: "sch10",
+        title: "System Backup",
+        date: "2025-02-10",
+        startTime: "18:00",
+        endTime: "20:00",
+        isAllDay: false,
+        repeat: "daily",
+        location: {
+          id: 1,
+          name: "Main Office",
+        },
+        isPublic: true,
+        results: [
+          {
+            id: "res7",
+            date: "2025-02-10",
+            status: "pending",
+          },
+        ],
+        nextOccurrence: "2025-02-11",
+        status: "today",
       },
     ],
   },
@@ -149,7 +276,7 @@ export const mockQRCodes: QRCode[] = [
             isPublic: false,
             createdAt: "2025-02-01T14:30:00Z",
             size: 512000, // 500KB
-            type: "scanned"
+            type: "scanned",
           },
           {
             id: "file4",
@@ -158,7 +285,7 @@ export const mockQRCodes: QRCode[] = [
             isPublic: false,
             createdAt: "2025-02-02T15:45:00Z",
             size: 614400, // 600KB
-            type: "scanned"
+            type: "scanned",
           },
           {
             id: "file10",
@@ -167,7 +294,7 @@ export const mockQRCodes: QRCode[] = [
             isPublic: false,
             createdAt: "2025-02-03T14:30:00Z",
             size: 528000,
-            type: "scanned"
+            type: "scanned",
           },
           {
             id: "file11",
@@ -176,7 +303,7 @@ export const mockQRCodes: QRCode[] = [
             isPublic: false,
             createdAt: "2025-02-04T15:45:00Z",
             size: 634400,
-            type: "scanned"
+            type: "scanned",
           },
           {
             id: "file12",
@@ -185,10 +312,10 @@ export const mockQRCodes: QRCode[] = [
             isPublic: false,
             createdAt: "2025-02-05T16:45:00Z",
             size: 724400,
-            type: "scanned"
-          }
+            type: "scanned",
+          },
         ],
-        subfolders: []
+        subfolders: [],
       },
       {
         name: "Manuals",
@@ -200,11 +327,11 @@ export const mockQRCodes: QRCode[] = [
             isPublic: true,
             createdAt: "2025-01-20T09:00:00Z",
             size: 5242880, // 5MB
-            type: "uploaded"
-          }
+            type: "uploaded",
+          },
         ],
-        subfolders: []
-      }
+        subfolders: [],
+      },
     ],
     schedules: [
       {
@@ -227,6 +354,8 @@ export const mockQRCodes: QRCode[] = [
             status: "pending",
           },
         ],
+        nextOccurrence: "2025-02-17",
+        status: "overdue",
       },
     ],
   },
@@ -252,11 +381,11 @@ export const mockQRCodes: QRCode[] = [
             isPublic: true,
             createdAt: "2025-02-05T11:20:00Z",
             size: 3145728, // 3MB
-            type: "uploaded"
-          }
+            type: "uploaded",
+          },
         ],
-        subfolders: []
-      }
+        subfolders: [],
+      },
     ],
     schedules: [
       {
@@ -280,6 +409,8 @@ export const mockQRCodes: QRCode[] = [
             notes: "Projector bulb replaced",
           },
         ],
+        nextOccurrence: "2025-02-11",
+        status: "completed",
       },
     ],
   },

@@ -7,10 +7,6 @@ import DashboardCard from "../components/DashboardCard";
 const Dashboard = () => {
   return (
     <Box className="flex-1 p-4 bg-background-50">
-      <Text className="text-2xl font-bold mb-6 text-typography-900">
-        Dashboard
-      </Text>
-
       <HStack space="md">
         <DashboardCard
           title="Total QR Codes"

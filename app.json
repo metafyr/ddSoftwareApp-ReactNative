@@ -46,20 +46,9 @@
     },
     "plugins": [
       [
-        "react-native-document-scanner-plugin",
+        "expo-camera",
         {
           "cameraPermission": "Camera permission is required to scan documents"
-        }
-      ],
-      [
-        "react-native-permissions",
-        {
-          "ios": {
-            "camera": "Camera permission is required to scan documents"
-          },
-          "android": {
-            "permissions": ["android.permission.CAMERA"]
-          }
         }
       ]
     ]

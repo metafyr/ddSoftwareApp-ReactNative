@@ -64,8 +64,6 @@ const QRCodes = () => {
   return (
     <Box className="flex-1 bg-background-50">
       <Box className="p-4 bg-white border-b border-outline-200 shadow-soft-1">
-        <Text className="text-2xl font-bold mb-4">QR Codes</Text>
-
         <HStack space="sm" className="items-center">
           <Box className="flex-1 relative">
             <Box className="absolute left-3 top-1/2 -translate-y-1/2 z-10">

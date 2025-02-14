@@ -58,6 +58,8 @@ export interface Schedule {
   };
   isPublic: boolean;
   results?: ScheduleResult[];
+  nextOccurrence?: string;
+  status: "upcoming" | "today" | "overdue" | "completed";
 }
 
 export interface ScheduleResult {

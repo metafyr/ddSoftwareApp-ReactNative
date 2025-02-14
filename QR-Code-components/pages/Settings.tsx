@@ -19,8 +19,6 @@ const Settings = () => {
   return (
     <Box className="flex-1 p-4 flex">
       <Box className="flex-1">
-        <Text className="text-2xl font-bold mb-4">Settings</Text>
-
         <VStack space="md">
           <Pressable>
             <Box className="bg-background-50 p-4 rounded-xl">
