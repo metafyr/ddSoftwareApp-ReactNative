@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import {
-  Actionsheet,
-  ActionsheetBackdrop,
-  ActionsheetContent,
-  ActionsheetDragIndicator,
-  ActionsheetDragIndicatorWrapper,
   Box,
   Button,
+  ButtonText,
   FormControl,
   FormControlLabel,
   FormControlLabelText,
   Input,
+  Modal,
+  ModalBackdrop,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
   Select,
   SelectTrigger,
   SelectInput,
@@ -23,6 +26,7 @@ import {
   Textarea,
   TextareaInput,
   VStack,
+  Heading,
 } from "../../components/ui";
 import { Schedule, ScheduleResult } from "../../types";
 
@@ -51,14 +55,15 @@ const ScheduleResultForm = ({
   };
 
   return (
-    <Actionsheet isOpen={isOpen} onClose={onClose}>
-      <ActionsheetBackdrop />
-      <ActionsheetContent>
-        <ActionsheetDragIndicatorWrapper>
-          <ActionsheetDragIndicator />
-        </ActionsheetDragIndicatorWrapper>
-
-        <Box className="p-4">
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <ModalBackdrop />
+      <ModalContent>
+        <ModalHeader>
+          <Heading size="lg">Add Schedule Result</Heading>
+          <ModalCloseButton />
+        </ModalHeader>
+        
+        <ModalBody>
           <VStack space="lg">
             <FormControl>
               <FormControlLabel>
@@ -115,19 +120,19 @@ const ScheduleResultForm = ({
                 />
               </Textarea>
             </FormControl>
-
-            <Box className="flex-row justify-end space-x-2">
-              <Button variant="outline" onPress={onClose} className="flex-1">
-                Cancel
-              </Button>
-              <Button variant="solid" onPress={handleSubmit} className="flex-1">
-                Add Result
-              </Button>
-            </Box>
           </VStack>
-        </Box>
-      </ActionsheetContent>
-    </Actionsheet>
+        </ModalBody>
+
+        <ModalFooter>
+          <Button variant="outline" onPress={onClose} className="flex-1 mr-2">
+            <ButtonText>Cancel</ButtonText>
+          </Button>
+          <Button variant="solid" onPress={handleSubmit} className="flex-1">
+            <ButtonText>Add Result</ButtonText>
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
   );
 };
 

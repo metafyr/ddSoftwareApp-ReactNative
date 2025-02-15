@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Text,
@@ -8,8 +8,14 @@ import {
   Pressable,
 } from "../../components/ui";
 import { Schedule } from "../../types";
-import { AlertCircle, Clock, CheckCircle, AlertTriangle } from "lucide-react-native";
+import {
+  AlertCircle,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+} from "lucide-react-native";
 import { format } from "date-fns";
+import ScheduleResultForm from "./ScheduleResultForm";
 
 interface ScheduleSectionProps {
   schedules: Schedule[];
@@ -20,6 +26,27 @@ const ScheduleSection = ({
   schedules,
   onSchedulePress,
 }: ScheduleSectionProps) => {
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(
+    null
+  );
+  const [isResultFormOpen, setIsResultFormOpen] = useState(false);
+
+  const handleSchedulePress = (schedule: Schedule) => {
+    setSelectedSchedule(schedule);
+    setIsResultFormOpen(true);
+    onSchedulePress?.(schedule);
+  };
+
+  const handleResultFormClose = () => {
+    setIsResultFormOpen(false);
+    setSelectedSchedule(null);
+  };
+
+  const handleResultSubmit = (result: Partial<ScheduleResult>) => {
+    // Handle the result submission here
+    console.log("Schedule result:", result);
+  };
+
   const getStatusIcon = (status: Schedule["status"]) => {
     switch (status) {
       case "upcoming":
@@ -58,14 +85,16 @@ const ScheduleSection = ({
           {schedules.map((schedule) => (
             <Pressable
               key={schedule.id}
-              onPress={() => onSchedulePress?.(schedule)}
+              onPress={() => handleSchedulePress(schedule)}
             >
               <Box className="bg-background-50 p-3 rounded-lg w-32 h-24">
                 <HStack space="sm" className="items-start mb-1">
                   <Icon
                     as={getStatusIcon(schedule.status)}
                     size="sm"
-                    className={`${getStatusColor(schedule.status)} flex-shrink-0 mt-0.5`}
+                    className={`${getStatusColor(
+                      schedule.status
+                    )} flex-shrink-0 mt-0.5`}
                   />
                   <Box className="flex-1 min-w-0">
                     <Text
@@ -77,25 +106,31 @@ const ScheduleSection = ({
                   </Box>
                 </HStack>
                 <Text className="text-sm text-typography-600" numberOfLines={1}>
-                  {format(new Date(schedule.date), "MMM dd, yyyy")}
+                  {schedule.isAllDay
+                    ? "All Day"
+                    : schedule.startTime
+                    ? `${schedule.startTime}${
+                        schedule.endTime ? ` - ${schedule.endTime}` : ""
+                      }`
+                    : ""}
                 </Text>
-                {!schedule.isAllDay && schedule.startTime && (
-                  <Text
-                    className="text-sm text-typography-600"
-                    numberOfLines={1}
-                  >
-                    {schedule.startTime}
-                    {schedule.endTime ? ` - ${schedule.endTime}` : ""}
-                  </Text>
-                )}
-                <Text className="text-xs text-typography-500" numberOfLines={1}>
-                  {schedule.location.name}
+                <Text className="text-sm text-typography-600" numberOfLines={1}>
+                  {format(new Date(schedule.date), "MMM dd, yyyy")}
                 </Text>
               </Box>
             </Pressable>
           ))}
         </HStack>
       </ScrollView>
+
+      {selectedSchedule && (
+        <ScheduleResultForm
+          schedule={selectedSchedule}
+          isOpen={isResultFormOpen}
+          onClose={handleResultFormClose}
+          onSubmit={handleResultSubmit}
+        />
+      )}
     </Box>
   );
 };
