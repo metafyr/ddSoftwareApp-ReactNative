@@ -38,7 +38,7 @@ interface AddQRCodeModalProps {
 const AddQRCodeModal = ({ isOpen, onClose, onAdd }: AddQRCodeModalProps) => {
   const [newQRName, setNewQRName] = React.useState("");
   const [selectedFunctions, setSelectedFunctions] = React.useState<string[]>(
-    []
+    ["files"]
   );
 
   const handleFunctionChange = (values: any) => {

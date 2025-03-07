@@ -29,7 +29,7 @@ export const mockQRCodes: QRCode[] = [
   {
     id: "qr1",
     uuid: "abc-123-456",
-    name: "Laptop Asset Tracker",
+    name: "Laptop",
     created: "2025-01-15",
     locationId: 1,
     linkedPhysicalQR: "PHY-001",
@@ -94,7 +94,7 @@ export const mockQRCodes: QRCode[] = [
     schedules: [
       {
         id: "sch1",
-        title: "Weekly Maintenance Check",
+        title: "Battery Check",
         date: "2025-02-10",
         startTime: "09:00",
         endTime: "10:00",
@@ -171,7 +171,7 @@ export const mockQRCodes: QRCode[] = [
       },
       {
         id: "sch7",
-        title: "Performance Review",
+        title: "Ink Calibration",
         date: "2025-02-20",
         isAllDay: true,
         repeat: "never",
@@ -209,7 +209,7 @@ export const mockQRCodes: QRCode[] = [
       },
       {
         id: "sch9",
-        title: "Network Maintenance",
+        title: "Network Check",
         date: "2025-02-09",
         startTime: "15:00",
         endTime: "17:00",
@@ -258,7 +258,7 @@ export const mockQRCodes: QRCode[] = [
   {
     id: "qr2",
     uuid: "def-456-789",
-    name: "Printer Scanner",
+    name: "HP-210e",
     created: "2025-01-20",
     locationId: 2,
     enabledFunctions: {
@@ -362,7 +362,7 @@ export const mockQRCodes: QRCode[] = [
   {
     id: "qr3",
     uuid: "ghi-789-012",
-    name: "Conference Room Equipment",
+    name: "Conference Room",
     created: "2025-02-01",
     locationId: 1,
     linkedPhysicalQR: "PHY-002",

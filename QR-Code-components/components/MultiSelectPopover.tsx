@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Popover,
   PopoverBackdrop,
@@ -9,10 +9,8 @@ import {
   Icon,
   VStack,
   HStack,
-  Input,
-  InputField,
-} from '../../components/ui';
-import { Check, ChevronsUpDown, X } from 'lucide-react-native';
+} from "../../components/ui";
+import { Check, ChevronsUpDown, X } from "lucide-react-native";
 
 export type Option = {
   value: string;
@@ -30,19 +28,17 @@ export function MultiSelectPopover({
   options,
   selected,
   onChange,
-  placeholder = "Select items..."
+  placeholder = "Select items...",
 }: MultiSelectPopoverProps) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState('');
 
-  const selectedItems = options.filter(option => selected.includes(option.value));
-  const filteredOptions = options.filter(option =>
-    option.label.toLowerCase().includes(searchQuery.toLowerCase())
+  const selectedItems = options.filter((option) =>
+    selected.includes(option.value)
   );
 
   const toggleOption = (value: string) => {
     const newSelected = selected.includes(value)
-      ? selected.filter(v => v !== value)
+      ? selected.filter((v) => v !== value)
       : [...selected, value];
     onChange(newSelected);
   };
@@ -86,22 +82,15 @@ export function MultiSelectPopover({
     >
       <PopoverBackdrop />
       <PopoverContent className="w-72">
-        <VStack space="sm" className="p-4">
-          <Input size="sm">
-            <InputField
-              placeholder="Search..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </Input>
-          <VStack className="max-h-64">
-            {filteredOptions.map((option) => (
+        <VStack space="xs" className="p-2">
+          <VStack>
+            {options.map((option) => (
               <Pressable
                 key={option.value}
                 onPress={() => toggleOption(option.value)}
-                className="flex-row items-center p-3 hover:bg-primary-50 rounded-md"
+                className="flex-row items-center p-2 hover:bg-primary-50 rounded-md"
               >
-                <Box className="w-5 h-5 mr-2">
+                <Box className="w-4 h-4 mr-2">
                   {selected.includes(option.value) && (
                     <Icon as={Check} size="sm" color="#2563EB" />
                   )}

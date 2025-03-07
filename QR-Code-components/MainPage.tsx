@@ -46,7 +46,7 @@ const MainContent = () => {
   return (
     <Box className="flex-1">
       <StatusBar />
-      <Box className="flex-1">
+      <Box className="flex-1 flex flex-col">
         <Header
           currentLocation={selectedLocation}
           onLocationChange={handleLocationChange}
@@ -55,18 +55,19 @@ const MainContent = () => {
           userRole={mockUser.role}
           activeTab={activeTab}
         />
-        {activeTab === "Dashboard" && <Dashboard />}
-        {activeTab === "QR Codes" && <QRCodes />}
-        {activeTab === "Schedules" && <Schedules />}
-        {activeTab === "Settings" && <Settings />}
-      </Box>
-
-      <Box className="h-[72px] items-center w-full flex md:hidden border-t border-outline-50">
-        <MobileBottomTabs
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          bottomTabs={bottomTabs}
-        />
+        <Box className="flex-1 overflow-hidden">
+          {activeTab === "Dashboard" && <Dashboard />}
+          {activeTab === "QR Codes" && <QRCodes />}
+          {activeTab === "Schedules" && <Schedules />}
+          {activeTab === "Settings" && <Settings />}
+        </Box>
+        <Box className="h-[72px] items-center w-full flex md:hidden border-t border-outline-50">
+          <MobileBottomTabs
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            bottomTabs={bottomTabs}
+          />
+        </Box>
       </Box>
     </Box>
   );
