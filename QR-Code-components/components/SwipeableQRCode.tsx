@@ -12,17 +12,13 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
+import { QRCode } from "../../types";
 
 interface SwipeableQRCodeProps {
-  qrCode: {
-    id: string;
-    name: string;
-    created: string;
-    linkedPhysicalQR?: string;
-  };
-  onEdit: (qrCode: any) => void;
-  onDelete: (qrCode: any) => void;
-  onQRCodeClick: (qrCode: any) => void;
+  qrCode: QRCode;
+  onEdit: (qrCode: QRCode) => void;
+  onDelete: (qrCode: QRCode) => void;
+  onQRCodeClick: (qrCode: QRCode) => void;
 }
 
 const SwipeableQRCode = ({
@@ -78,14 +74,14 @@ const SwipeableQRCode = ({
                     {qrCode.name}
                   </Text>
                   <Text className="text-sm text-typography-600">
-                    Created: {qrCode.created}
+                    Created: {new Date(qrCode.createdAt).toLocaleDateString()}
                   </Text>
                 </Box>
 
                 <Icon
                   as={QrCode}
                   size="sm"
-                  color={qrCode.linkedPhysicalQR ? "#2563EB" : "#9CA3AF"}
+                  color={qrCode.uuid ? "#2563EB" : "#9CA3AF"}
                 />
               </HStack>
             </Box>

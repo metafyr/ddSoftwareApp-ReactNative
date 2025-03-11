@@ -92,7 +92,7 @@ export function Header({
                     Current Location
                   </Text>
                   <Text className="font-medium text-white">
-                    {currentLocation.location_name}
+                    {currentLocation.name}
                   </Text>
                 </VStack>
               </HStack>
@@ -111,7 +111,7 @@ export function Header({
             <Box className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 z-50">
               {locations.map((location) => (
                 <Pressable
-                  key={location.location_id}
+                  key={location.id}
                   className="px-4 py-3"
                   onPress={() => {
                     onLocationChange(location);
@@ -119,7 +119,7 @@ export function Header({
                   }}
                 >
                   <Text className="text-gray-800 text-sm font-medium">
-                    {location.location_name}
+                    {location.name}
                   </Text>
                 </Pressable>
               ))}

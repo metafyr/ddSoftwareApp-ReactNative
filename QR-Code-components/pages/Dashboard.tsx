@@ -1,32 +1,49 @@
 import React from "react";
 import { Box, Text, HStack } from "../../components/ui";
 import { QrCode, CalendarDays, ArrowUp, Activity } from "lucide-react-native";
-import { mockDashboardData } from "../../data/mockData";
 import DashboardCard from "../components/DashboardCard";
+import { useDashboard } from "../../src/api/hooks";
+import LoadingScreen from "../../src/screens/LoadingScreen";
+import ErrorScreen from "../../src/screens/ErrorScreen";
 
 const Dashboard = () => {
+  const { data: dashboardData, isLoading, error, refetch } = useDashboard();
+
+  if (isLoading) {
+    return <LoadingScreen message="Loading dashboard data..." />;
+  }
+
+  if (error || !dashboardData) {
+    return (
+      <ErrorScreen
+        message="Failed to load dashboard data. Please try again."
+        onRetry={refetch}
+      />
+    );
+  }
+
   return (
     <Box className="flex-1 p-4 bg-background-50">
       <HStack space="md">
         <DashboardCard
           title="Total QR Codes"
-          value={mockDashboardData.totalQRCodes}
+          value={dashboardData.totalQRCodes}
           icon={QrCode}
           iconColor="text-primary-500"
           metricIcon={ArrowUp}
-          metricText="this week"
-          metricValue={`+${mockDashboardData.weeklyGrowth}`}
+          metricText="% this week"
+          metricValue={`+${dashboardData.weeklyGrowth}`}
           metricColor="text-success-500"
         />
 
         <DashboardCard
           title="Active Schedules"
-          value={mockDashboardData.activeSchedules}
+          value={dashboardData.activeSchedules}
           icon={CalendarDays}
           iconColor="text-success-500"
           metricIcon={Activity}
           metricText="due today"
-          metricValue={mockDashboardData.scheduledToday}
+          metricValue={dashboardData.scheduledToday}
           metricColor="text-primary-500"
         />
       </HStack>

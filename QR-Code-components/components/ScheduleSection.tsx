@@ -26,9 +26,7 @@ const ScheduleSection = ({
   schedules,
   onSchedulePress,
 }: ScheduleSectionProps) => {
-  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(
-    null
-  );
+  const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
   const [isResultFormOpen, setIsResultFormOpen] = useState(false);
 
   const handleSchedulePress = (schedule: Schedule) => {
@@ -42,7 +40,7 @@ const ScheduleSection = ({
     setSelectedSchedule(null);
   };
 
-  const handleResultSubmit = (result: Partial<ScheduleResult>) => {
+  const handleResultSubmit = (result: any) => {
     // Handle the result submission here
     console.log("Schedule result:", result);
   };
@@ -77,6 +75,11 @@ const ScheduleSection = ({
     }
   };
 
+  const formatTimeRange = (startTime?: string, endTime?: string) => {
+    if (!startTime) return "";
+    return endTime ? `${startTime.slice(0, 5)} - ${endTime.slice(0, 5)}` : startTime.slice(0, 5);
+  };
+
   return (
     <Box className="bg-white p-4 rounded-xl">
       <Text className="text-lg font-semibold mb-4">Schedules</Text>
@@ -92,15 +95,10 @@ const ScheduleSection = ({
                   <Icon
                     as={getStatusIcon(schedule.status)}
                     size="sm"
-                    className={`${getStatusColor(
-                      schedule.status
-                    )} flex-shrink-0 mt-0.5`}
+                    className={`${getStatusColor(schedule.status)} flex-shrink-0 mt-0.5`}
                   />
                   <Box className="flex-1 min-w-0">
-                    <Text
-                      className="font-medium text-typography-900"
-                      numberOfLines={1}
-                    >
+                    <Text className="font-medium text-typography-900" numberOfLines={1}>
                       {schedule.title}
                     </Text>
                   </Box>
@@ -108,14 +106,10 @@ const ScheduleSection = ({
                 <Text className="text-sm text-typography-600" numberOfLines={1}>
                   {schedule.isAllDay
                     ? "All Day"
-                    : schedule.startTime
-                    ? `${schedule.startTime}${
-                        schedule.endTime ? ` - ${schedule.endTime}` : ""
-                      }`
-                    : ""}
+                    : formatTimeRange(schedule.startTime, schedule.endTime)}
                 </Text>
                 <Text className="text-sm text-typography-600" numberOfLines={1}>
-                  {format(new Date(schedule.date), "MMM dd, yyyy")}
+                  {format(new Date(schedule.startDate), "MMM dd, yyyy")}
                 </Text>
               </Box>
             </Pressable>

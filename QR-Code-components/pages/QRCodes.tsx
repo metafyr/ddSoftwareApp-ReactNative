@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Box,
   Text,
@@ -6,15 +6,25 @@ import {
   HStack,
   Input,
   InputField,
+  Spinner,
+  ScrollView,
 } from "../../components/ui";
 import SwipeableQRCode from "../components/SwipeableQRCode";
 import AddQRCodeModal from "../components/AddQRCodeModal";
-import { mockQRCodes } from "../../data/mockData";
 import { Search, Plus } from "lucide-react-native";
 import QRCodeDetails from "./QRCodeDetails";
 import { QRCode } from "@/types";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import {
+  useQRCodes,
+  useCreateQRCode,
+  useUpdateQRCode,
+  useDeleteQRCode,
+} from "../../src/api/hooks";
+import { useAuth } from "../../src/api/hooks/useAuth";
+import ErrorScreen from "../../src/screens/ErrorScreen";
+import LoadingScreen from "../../src/screens/LoadingScreen";
 
 // Define the navigation param list type
 type RootStackParamList = {
@@ -26,40 +36,95 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const QRCodes = () => {
   const navigation = useNavigation<NavigationProp>();
-
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-  // Remove selectedQRCode state as we'll use navigation instead
+  // Get the current location from auth context
+  const { data: userData } = useAuth();
+  const currentLocation = userData?.locations?.[0];
 
-  // Add the filtering logic
-  const filteredQRCodes = mockQRCodes.filter((qrCode) =>
-    qrCode.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // If no location is selected, show an error state
+  if (!currentLocation?.id) {
+    return (
+      <ErrorScreen
+        message="No location selected. Please select a location to view QR codes."
+        onRetry={() => {}}
+      />
+    );
+  }
 
-  const handleAddQR = (data: {
+  // Use React Query hooks
+  const {
+    data: qrCodes,
+    isLoading,
+    error,
+    refetch,
+  } = useQRCodes();
+
+  const createQRCode = useCreateQRCode();
+  const updateQRCode = useUpdateQRCode();
+  const deleteQRCode = useDeleteQRCode();
+
+  // Filter QR codes based on search query
+  const filteredQRCodes = useMemo(() => {
+    if (!qrCodes) return [];
+    return qrCodes.filter((qrCode) =>
+      qrCode.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [qrCodes, searchQuery]);
+
+  const handleAddQR = async (data: {
     name: string;
     enabledFunctions: { files: boolean; schedules: boolean };
   }) => {
-    // TODO: Implement API call
-    console.log("Adding new QR code:", data);
+    try {
+      await createQRCode.mutateAsync({
+        name: data.name,
+        locationId: currentLocation.id,
+        enabledFunctions: data.enabledFunctions,
+        createdAt: new Date().toISOString(),
+      });
+      setIsAddDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding QR code:", error);
+      // Show error message to user
+    }
   };
 
-  const handleEditQR = (qrCode: any) => {
-    // TODO: Implement edit functionality
-    console.log("Edit QR Code:", qrCode);
+  const handleEditQR = async (qrCode: QRCode) => {
+    try {
+      await updateQRCode.mutateAsync(qrCode);
+    } catch (error) {
+      console.error("Error updating QR code:", error);
+      // Show error message to user
+    }
   };
 
-  const handleDeleteQR = (qrCode: any) => {
-    // TODO: Implement delete functionality
-    console.log("Delete QR Code:", qrCode);
+  const handleDeleteQR = async (qrCode: QRCode) => {
+    try {
+      await deleteQRCode.mutateAsync(qrCode.id);
+    } catch (error) {
+      console.error("Error deleting QR code:", error);
+      // Show error message to user
+    }
   };
 
   const handleQRCodeClick = (qrCode: QRCode) => {
     navigation.navigate("QRCodeDetails", { qrId: qrCode.id });
   };
 
-  // Remove handleBack and conditional rendering of QRCodeDetails
+  if (isLoading) {
+    return <LoadingScreen message="Loading QR codes..." />;
+  }
+
+  if (error) {
+    return (
+      <ErrorScreen
+        message="Failed to load QR codes. Please try again."
+        onRetry={refetch}
+      />
+    );
+  }
 
   return (
     <Box className="flex-1 bg-background-50">
@@ -89,22 +154,31 @@ const QRCodes = () => {
         </HStack>
       </Box>
 
-      <Box className="p-4 space-y-3">
-        {filteredQRCodes.map((qrCode) => (
-          <SwipeableQRCode
-            key={qrCode.id}
-            qrCode={qrCode}
-            onEdit={handleEditQR}
-            onDelete={handleDeleteQR}
-            onQRCodeClick={handleQRCodeClick}
-          />
-        ))}
-      </Box>
+      <ScrollView className="flex-1">
+        <Box className="p-4 space-y-3">
+          {filteredQRCodes.length === 0 ? (
+            <Box className="py-8 items-center">
+              <Text className="text-gray-500">No QR codes found</Text>
+            </Box>
+          ) : (
+            filteredQRCodes.map((qrCode) => (
+              <SwipeableQRCode
+                key={qrCode.id}
+                qrCode={qrCode}
+                onEdit={handleEditQR}
+                onDelete={handleDeleteQR}
+                onQRCodeClick={handleQRCodeClick}
+              />
+            ))
+          )}
+        </Box>
+      </ScrollView>
 
       <AddQRCodeModal
         isOpen={isAddDialogOpen}
         onClose={() => setIsAddDialogOpen(false)}
         onAdd={handleAddQR}
+        isLoading={createQRCode.isPending}
       />
     </Box>
   );

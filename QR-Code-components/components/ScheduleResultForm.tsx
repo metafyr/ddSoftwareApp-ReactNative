@@ -7,6 +7,7 @@ import {
   FormControlLabel,
   FormControlLabelText,
   Input,
+  InputField,
   Modal,
   ModalBackdrop,
   ModalContent,
@@ -27,6 +28,7 @@ import {
   TextareaInput,
   VStack,
   Heading,
+  Spinner,
 } from "../../components/ui";
 import { Schedule, ScheduleResult } from "../../types";
 
@@ -35,6 +37,7 @@ interface ScheduleResultFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (result: Partial<ScheduleResult>) => void;
+  isLoading?: boolean;
 }
 
 const ScheduleResultForm = ({
@@ -42,6 +45,7 @@ const ScheduleResultForm = ({
   isOpen,
   onClose,
   onSubmit,
+  isLoading = false,
 }: ScheduleResultFormProps) => {
   const [result, setResult] = useState<Partial<ScheduleResult>>({
     date: new Date().toISOString().split("T")[0],
@@ -51,7 +55,20 @@ const ScheduleResultForm = ({
 
   const handleSubmit = () => {
     onSubmit(result);
-    onClose();
+    // Only close if not loading
+    if (!isLoading) {
+      onClose();
+    }
+  };
+
+  // Map UI status to API status if needed
+  const mapStatusToApiStatus = (
+    uiStatus: string
+  ): "completed" | "cancelled" | "pending" => {
+    if (uiStatus === "missed") {
+      return "cancelled"; // Map "missed" to "cancelled" for API
+    }
+    return uiStatus as "completed" | "cancelled" | "pending";
   };
 
   return (
@@ -62,18 +79,22 @@ const ScheduleResultForm = ({
           <Heading size="lg">Add Schedule Result</Heading>
           <ModalCloseButton />
         </ModalHeader>
-        
+
         <ModalBody>
           <VStack space="lg">
             <FormControl>
               <FormControlLabel>
                 <FormControlLabelText>Date</FormControlLabelText>
               </FormControlLabel>
-              <Input
-                value={result.date}
-                onChangeText={(value) => setResult({ ...result, date: value })}
-                type="date"
-              />
+              <Input>
+                <InputField
+                  value={result.date}
+                  onChangeText={(text: string) =>
+                    setResult({ ...result, date: text })
+                  }
+                  editable={!isLoading}
+                />
+              </Input>
             </FormControl>
 
             <FormControl>
@@ -88,6 +109,7 @@ const ScheduleResultForm = ({
                     status: value as ScheduleResult["status"],
                   })
                 }
+                isDisabled={isLoading}
               >
                 <SelectTrigger>
                   <SelectInput placeholder="Select status" />
@@ -113,10 +135,11 @@ const ScheduleResultForm = ({
               <Textarea>
                 <TextareaInput
                   value={result.notes}
-                  onChangeText={(value) =>
-                    setResult({ ...result, notes: value })
+                  onChangeText={(text: string) =>
+                    setResult({ ...result, notes: text })
                   }
                   placeholder="Enter any notes about the result"
+                  editable={!isLoading}
                 />
               </Textarea>
             </FormControl>
@@ -124,11 +147,25 @@ const ScheduleResultForm = ({
         </ModalBody>
 
         <ModalFooter>
-          <Button variant="outline" onPress={onClose} className="flex-1 mr-2">
+          <Button
+            variant="outline"
+            onPress={onClose}
+            className="flex-1 mr-2"
+            isDisabled={isLoading}
+          >
             <ButtonText>Cancel</ButtonText>
           </Button>
-          <Button variant="solid" onPress={handleSubmit} className="flex-1">
-            <ButtonText>Add Result</ButtonText>
+          <Button
+            variant="solid"
+            onPress={handleSubmit}
+            className="flex-1"
+            isDisabled={isLoading}
+          >
+            {isLoading ? (
+              <Spinner color="white" size="small" />
+            ) : (
+              <ButtonText>Add Result</ButtonText>
+            )}
           </Button>
         </ModalFooter>
       </ModalContent>

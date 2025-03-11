@@ -15,10 +15,9 @@ import {
   CheckCircleIcon,
   AlertCircleIcon,
 } from "lucide-react-native";
-import { File, QRCode, Schedule } from "../../types";
+import { File, QRCodeDetailsType, Folder } from "../../types";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { mockQRCodes } from "../../data/mockData";
 import QRCodeCard from "../components/QRCodeCard";
 import DocumentsSection from "../components/DocumentsSection";
 import ExpandableFAB from "../components/ExpandableFAB";
@@ -26,6 +25,9 @@ import ScheduleSection from "../components/ScheduleSection";
 import ScheduleForm from "../components/ScheduleForm";
 import { useDocumentScanner } from "@/features/document-scanner/DocumentScanner";
 import * as DocumentPicker from "expo-document-picker";
+import { useQRCodeDetails } from "../../src/api/hooks";
+import LoadingScreen from "../../src/screens/LoadingScreen";
+import ErrorScreen from "../../src/screens/ErrorScreen";
 
 type RootStackParamList = {
   Main: undefined;
@@ -39,8 +41,15 @@ const QRCodeDetails = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<QRCodeDetailsRouteProp>();
   const { qrId } = route.params;
+  const [showScheduleForm, setShowScheduleForm] = useState(false);
+  const [showAlert, setShowAlert] = useState<{
+    show: boolean;
+    message: string;
+    type: "success" | "error";
+  }>({ show: false, message: "", type: "success" });
 
-  const qrCode = mockQRCodes.find((qr) => qr.id === qrId);
+  // Use the QR code details hook
+  const { data: qrCode, isLoading, error, refetch } = useQRCodeDetails(qrId);
 
   const handleBack = () => {
     navigation.goBack();
@@ -48,9 +57,11 @@ const QRCodeDetails = () => {
 
   const getAllFiles = () => {
     if (!qrCode?.folders) return [];
-    return qrCode.folders.reduce((acc: File[], folder) => {
-      return [...acc, ...folder.files];
-    }, []);
+    const allFiles: File[] = [];
+    Object.values(qrCode.folders).forEach((folder: Folder) => {
+      allFiles.push(...folder.files);
+    });
+    return allFiles;
   };
 
   const getFilesByType = (type: "scanned" | "uploaded") => {
@@ -62,20 +73,6 @@ const QRCodeDetails = () => {
     // Handle file selection here
     console.log("Selected file:", file);
   };
-
-  if (!qrCode) {
-    return (
-      <Box className="flex-1 bg-background-50 justify-center items-center">
-        <Text>QR Code not found</Text>
-      </Box>
-    );
-  }
-
-  const [showAlert, setShowAlert] = useState<{
-    show: boolean;
-    message: string;
-    type: "success" | "error";
-  }>({ show: false, message: "", type: "success" });
 
   const handleDownloadStatus = (success: boolean, message: string) => {
     setShowAlert({
@@ -99,7 +96,7 @@ const QRCodeDetails = () => {
   const handleUpload = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: ["application/pdf", "image/*"], // Allow PDF and image files
+        type: ["application/pdf", "image/*"],
         multiple: true,
       });
 
@@ -111,27 +108,33 @@ const QRCodeDetails = () => {
       // Handle successful file selection
       const files = result.assets;
       console.log("Selected files:", files);
-
-      // Here you would typically implement your file upload logic
       handleDownloadStatus(true, "Files selected successfully");
 
-      // TODO: Implement your actual file upload logic here
-      // For example, sending the files to your backend server
+      // TODO: Implement actual file upload logic
     } catch (error) {
       console.error("Error picking document:", error);
       handleDownloadStatus(false, "Error selecting files");
     }
   };
 
-  const [showScheduleForm, setShowScheduleForm] = useState(false);
-
   const handleSchedule = () => {
     setShowScheduleForm(true);
   };
 
-  const getRelevantSchedules = () => {
-    return qrCode?.schedules || [];
-  };
+  // Show loading screen while data is being fetched
+  if (isLoading) {
+    return <LoadingScreen message="Loading QR code details..." />;
+  }
+
+  // Show error screen if there's an error
+  if (error || !qrCode) {
+    return (
+      <ErrorScreen
+        message="Failed to load QR code details. Please try again."
+        onRetry={refetch}
+      />
+    );
+  }
 
   return (
     <Box className="flex-1 bg-background-50 relative">
@@ -150,10 +153,7 @@ const QRCodeDetails = () => {
             </Box>
 
             <VStack space="md" className="p-4">
-              <QRCodeCard
-                name={qrCode.name}
-                linkedPhysicalQR={qrCode.linkedPhysicalQR}
-              />
+              <QRCodeCard name={qrCode.name} linkedPhysicalQR={qrCode.uuid} />
 
               <DocumentsSection
                 title="Scanned Documents"
@@ -169,25 +169,8 @@ const QRCodeDetails = () => {
                 onDownloadStatus={handleDownloadStatus}
               />
 
-              <ScheduleSection schedules={getRelevantSchedules()} />
+              <ScheduleSection schedules={qrCode.schedules} />
             </VStack>
-
-            {showAlert.show && (
-              <Box className="absolute bottom-4 left-4 right-4">
-                <Alert
-                  action={showAlert.type === "success" ? "success" : "error"}
-                >
-                  <AlertIcon
-                    as={
-                      showAlert.type === "success"
-                        ? CheckCircleIcon
-                        : AlertCircleIcon
-                    }
-                  />
-                  <AlertText>{showAlert.message}</AlertText>
-                </Alert>
-              </Box>
-            )}
           </ScrollView>
 
           <ExpandableFAB

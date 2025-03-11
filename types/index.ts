@@ -1,29 +1,28 @@
 export interface Location {
-  location_id: string;
-  location_name: string;
+  id: string;
+  name: string;
+  org_id: string;
+  created_at: string;
 }
 
 export interface User {
   name: string;
   email: string;
-  org_id: string;
+  orgId: string;
   locations: Location[];
   role: string;
 }
 
 export interface QRCode {
   id: string;
-  uuid: string;
   name: string;
-  created: string;
-  locationId: number;
-  linkedPhysicalQR?: string;
+  locationId: string;
+  uuid?: string; // for physical QR ID
   enabledFunctions: {
     files: boolean;
     schedules: boolean;
   };
-  folders?: Folder[];
-  schedules?: Schedule[];
+  createdAt: string; // ISO date string
 }
 
 export interface File {
@@ -31,35 +30,51 @@ export interface File {
   name: string;
   url: string;
   isPublic: boolean;
+  size: number;
+  type: "uploaded" | "scanned";
+  folderId: string;
+  qrCodeId: string;
   createdAt: string;
-  size: number; // in bytes
-  type: FileType;
 }
 
-export type FileType = "scanned" | "uploaded";
-
 export interface Folder {
+  id: string;
   name: string;
+  parentFolderId: string | null;
+  createdAt: string;
   files: File[];
-  subfolders: Folder[];
+  subFolders: { [key: string]: Folder };
 }
 
 export interface Schedule {
   id: string;
   title: string;
-  date: string;
+  qrCodeId: string;
+  startDate: string;
   startTime?: string;
   endTime?: string;
   isAllDay: boolean;
   repeat: "never" | "daily" | "weekly" | "monthly";
-  location: {
-    id: number;
-    name: string;
-  };
   isPublic: boolean;
-  results?: ScheduleResult[];
-  nextOccurrence?: string;
+  nextOccurrence: string;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt?: string;
   status: "upcoming" | "today" | "overdue" | "completed";
+}
+
+export interface QRCodeDetailsType {
+  id: string;
+  name: string;
+  locationId: string;
+  uuid?: string;
+  enabledFunctions: {
+    files: boolean;
+    schedules: boolean;
+  };
+  createdAt: string;
+  folders: { [key: string]: Folder };
+  schedules: Schedule[];
 }
 
 export interface ScheduleResult {

@@ -1,58 +1,73 @@
 import React, { useEffect, useState } from "react";
 import { StatusBar, Platform } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Box } from "../components/ui";
 import { Header } from "./components/Header";
-import { mockUser, mockLocations, currentLocation } from "../data/mockData";
-import { Location } from "../types";
+import { Location } from "../src/types";
 import MobileBottomTabs from "./MobileBottomTabs";
 import Dashboard from "./pages/Dashboard";
 import QRCodes from "./pages/QRCodes";
 import Schedules from "./pages/Schedules";
 import Settings from "./pages/Settings";
 import QRCodeDetails from "./pages/QRCodeDetails";
+import { useAuth } from "../src/api/hooks";
+import LoadingScreen from "../src/screens/LoadingScreen";
+import ErrorScreen from "../src/screens/ErrorScreen";
+import { useLocationContext } from "../src/context/LocationContext";
 
 const Stack = createNativeStackNavigator();
 
 const bottomTabs = [
   {
-    icon: "home",
     label: "Dashboard",
+    value: "Dashboard",
+    icon: "home",
   },
   {
-    icon: "qrcode",
     label: "QR Codes",
+    value: "QR Codes",
+    icon: "qrcode",
   },
   {
-    icon: "calendar",
     label: "Schedules",
+    value: "Schedules",
+    icon: "calendar",
   },
   {
-    icon: "settings",
     label: "Settings",
+    value: "Settings",
+    icon: "settings",
   },
 ];
 
 const MainContent = () => {
   const [activeTab, setActiveTab] = useState("Dashboard");
-  const [selectedLocation, setSelectedLocation] =
-    useState<Location>(currentLocation);
+  const { data: user, isLoading: isUserLoading, error: userError } = useAuth();
+  const { selectedLocation, setSelectedLocation, locations, isLoading: isLocationsLoading } = useLocationContext();
 
-  const handleLocationChange = (location: Location) => {
-    setSelectedLocation(location);
-  };
+  if (isUserLoading || isLocationsLoading) {
+    return <LoadingScreen message="Loading your dashboard..." />;
+  }
 
+  if (userError || !user || !selectedLocation) {
+    return (
+      <ErrorScreen
+        message="Failed to load user or locations data. Please try again."
+        onRetry={() => window.location.reload()}
+      />
+    );
+  }
+  
   return (
     <Box className="flex-1">
       <StatusBar />
       <Box className="flex-1 flex flex-col">
         <Header
           currentLocation={selectedLocation}
-          onLocationChange={handleLocationChange}
-          locations={mockLocations}
-          userName={mockUser.name}
-          userRole={mockUser.role}
+          onLocationChange={setSelectedLocation}
+          locations={locations}
+          userName={user.name}
+          userRole={user.roleName}
           activeTab={activeTab}
         />
         <Box className="flex-1 overflow-hidden">
@@ -82,12 +97,10 @@ const MainPage = () => {
   }, []);
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Main" component={MainContent} />
-        <Stack.Screen name="QRCodeDetails" component={QRCodeDetails} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Main" component={MainContent} />
+      <Stack.Screen name="QRCodeDetails" component={QRCodeDetails} />
+    </Stack.Navigator>
   );
 };
 

@@ -22,6 +22,7 @@ import {
   SelectDragIndicator,
   SelectDragIndicatorWrapper,
   SelectItem,
+  Spinner,
 } from "../../components/ui";
 import { ChevronDown } from "lucide-react-native";
 import { MultiSelectPopover } from "./MultiSelectPopover";
@@ -33,13 +34,19 @@ interface AddQRCodeModalProps {
     name: string;
     enabledFunctions: { files: boolean; schedules: boolean };
   }) => void;
+  isLoading?: boolean;
 }
 
-const AddQRCodeModal = ({ isOpen, onClose, onAdd }: AddQRCodeModalProps) => {
+const AddQRCodeModal = ({
+  isOpen,
+  onClose,
+  onAdd,
+  isLoading = false,
+}: AddQRCodeModalProps) => {
   const [newQRName, setNewQRName] = React.useState("");
-  const [selectedFunctions, setSelectedFunctions] = React.useState<string[]>(
-    ["files"]
-  );
+  const [selectedFunctions, setSelectedFunctions] = React.useState<string[]>([
+    "files",
+  ]);
 
   const handleFunctionChange = (values: any) => {
     // Ensure we're handling the values as an array
@@ -55,7 +62,10 @@ const AddQRCodeModal = ({ isOpen, onClose, onAdd }: AddQRCodeModalProps) => {
         schedules: selectedFunctions.includes("schedules"),
       },
     });
-    handleClose();
+    // Don't close the modal if we're loading - wait for the operation to complete
+    if (!isLoading) {
+      handleClose();
+    }
   };
 
   const handleClose = () => {
@@ -108,6 +118,7 @@ const AddQRCodeModal = ({ isOpen, onClose, onAdd }: AddQRCodeModalProps) => {
             size="md"
             className="mr-2"
             onPress={handleClose}
+            isDisabled={isLoading}
           >
             <Text>Cancel</Text>
           </Button>
@@ -116,8 +127,13 @@ const AddQRCodeModal = ({ isOpen, onClose, onAdd }: AddQRCodeModalProps) => {
             size="md"
             className="bg-primary-600"
             onPress={handleSubmit}
+            isDisabled={isLoading}
           >
-            <Text className="text-white">Add QR Code</Text>
+            {isLoading ? (
+              <Spinner color="white" size="small" />
+            ) : (
+              <Text className="text-white">Add QR Code</Text>
+            )}
           </Button>
         </ModalFooter>
       </ModalContent>
