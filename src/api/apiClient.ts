@@ -24,8 +24,16 @@ export class ApiClient {
     console.log(
       `[ApiClient] Making ${options.method || "GET"} request to: ${url}`
     );
+
+    // Determine if this is a multipart/form-data request
+    const isMultipartFormData =
+      options.headers &&
+      options.headers["Content-Type"] &&
+      options.headers["Content-Type"].includes("multipart/form-data");
+
     const headers = {
-      "Content-Type": "application/json",
+      // Only set Content-Type to application/json if it's not a multipart/form-data request
+      ...(!isMultipartFormData ? { "Content-Type": "application/json" } : {}),
       ...(this.authToken ? { Authorization: `Bearer ${this.authToken}` } : {}),
       ...options.headers,
     };
@@ -35,10 +43,18 @@ export class ApiClient {
         ...headers,
         Authorization: this.authToken ? "Bearer [REDACTED]" : "None",
       });
+
+      // Don't stringify the body if it's a multipart/form-data request
+      const body = isMultipartFormData
+        ? options.body
+        : options.body
+        ? JSON.stringify(options.body)
+        : undefined;
+
       const response = await fetch(url, {
         method: options.method || "GET",
         headers,
-        body: options.body ? JSON.stringify(options.body) : undefined,
+        body,
       });
 
       if (!response.ok) {

@@ -47,28 +47,59 @@ export const useUploadFile = () => {
 
   return useMutation({
     mutationFn: async ({
-      file,
-      folderId,
+      fileUri,
+      fileName,
+      fileType,
       qrCodeId,
+      folderId,
       isPublic = false,
+      uploadType = "uploaded",
     }: {
-      file: FormData;
+      fileUri: string;
+      fileName: string;
+      fileType: string;
+      qrCodeId: string;
       folderId?: string;
-      qrCodeId?: string;
       isPublic?: boolean;
+      uploadType?: "scanned" | "uploaded";
     }) => {
-      // Construct the endpoint based on whether we're uploading to a folder or directly to a QR code
-      const endpoint = folderId
-        ? `${API_ENDPOINTS.FILES_BY_FOLDER(folderId)}?isPublic=${isPublic}`
-        : `${API_ENDPOINTS.FILES_BY_QR_CODE(qrCodeId!)}?isPublic=${isPublic}`;
+      // Create a form data object for the file upload
+      const formData = new FormData();
 
-      const response = await apiClient.request<File>(endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-        body: file,
+      // Add the file to the form data
+      // @ts-ignore - FormData type definition issue in React Native
+      formData.append("file", {
+        uri: fileUri,
+        name: fileName,
+        type: fileType,
       });
+
+      // Add other parameters to the form data
+      formData.append("qrCodeId", qrCodeId);
+      if (folderId) {
+        formData.append("folderId", folderId);
+      }
+      formData.append("name", fileName);
+      formData.append("fileType", fileType);
+      formData.append("isPublic", isPublic ? "true" : "false");
+      formData.append("uploadType", uploadType);
+
+      const response = await apiClient.request<File>(
+        API_ENDPOINTS.FILE_UPLOAD,
+        {
+          method: "POST",
+          headers: {
+            // Set the Content-Type header to multipart/form-data without a boundary
+            // The browser/fetch will automatically add the boundary
+            "Content-Type": "multipart/form-data",
+          },
+          body: formData,
+        }
+      );
+
+      // Log the form data for debugging
+      console.log("[useUploadFile] FormData (before sending):", formData);
+
       return response;
     },
     onSuccess: (data, variables) => {
@@ -78,11 +109,14 @@ export const useUploadFile = () => {
           queryKey: ["files", "folder", variables.folderId],
         });
       }
-      if (variables.qrCodeId) {
-        queryClient.invalidateQueries({
-          queryKey: ["files", "qrCode", variables.qrCodeId],
-        });
-      }
+      queryClient.invalidateQueries({
+        queryKey: ["files", "qrCode", variables.qrCodeId],
+      });
+
+      // Also invalidate QR code details
+      queryClient.invalidateQueries({
+        queryKey: ["qrCode", "details", variables.qrCodeId],
+      });
     },
   });
 };

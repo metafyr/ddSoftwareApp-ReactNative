@@ -73,6 +73,7 @@ const SwipeableQRCode = ({
   };
 
   const handleDeletePress = () => {
+    setIsEditModalOpen(false);
     // Only proceed if not already loading
     if (!isDeleteLoading) {
       onDelete(qrCode);

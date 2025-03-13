@@ -47,7 +47,6 @@ const QRCodes = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Use the location context instead of auth context
   const { selectedLocation } = useLocationContext();
   const currentLocation = selectedLocation;
 
@@ -98,8 +97,6 @@ const QRCodes = () => {
         enabledFunctions: data.enabledFunctions,
         createdAt: new Date().toISOString(),
       });
-
-      console.log("Created QR code:", result);
 
       // Show success toast
       toast.show({

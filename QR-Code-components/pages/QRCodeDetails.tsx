@@ -25,7 +25,7 @@ import ScheduleSection from "../components/ScheduleSection";
 import ScheduleForm from "../components/ScheduleForm";
 import { useDocumentScanner } from "@/features/document-scanner/DocumentScanner";
 import * as DocumentPicker from "expo-document-picker";
-import { useQRCodeDetails } from "../../src/api/hooks";
+import { useQRCodeDetails, useUploadFile } from "../../src/api/hooks";
 import LoadingScreen from "../../src/screens/LoadingScreen";
 import ErrorScreen from "../../src/screens/ErrorScreen";
 
@@ -47,9 +47,11 @@ const QRCodeDetails = () => {
     message: string;
     type: "success" | "error";
   }>({ show: false, message: "", type: "success" });
+  const [isUploading, setIsUploading] = useState(false);
 
   // Use the QR code details hook
   const { data: qrCode, isLoading, error, refetch } = useQRCodeDetails(qrId);
+  const { mutateAsync: uploadFile } = useUploadFile();
 
   const handleBack = () => {
     navigation.goBack();
@@ -95,6 +97,7 @@ const QRCodeDetails = () => {
 
   const handleUpload = async () => {
     try {
+      setIsUploading(true);
       const result = await DocumentPicker.getDocumentAsync({
         type: ["application/pdf", "image/*"],
         multiple: true,
@@ -107,13 +110,31 @@ const QRCodeDetails = () => {
 
       // Handle successful file selection
       const files = result.assets;
-      console.log("Selected files:", files);
-      handleDownloadStatus(true, "Files selected successfully");
 
-      // TODO: Implement actual file upload logic
+      // Upload each file
+      const uploadPromises = files.map(async (file) => {
+        return uploadFile({
+          fileUri: file.uri,
+          fileName: file.name,
+          fileType: file.mimeType || "application/octet-stream",
+          qrCodeId: qrId,
+          folderId: undefined,
+          isPublic: false,
+          uploadType: "uploaded",
+        });
+      });
+
+      await Promise.all(uploadPromises);
+      handleDownloadStatus(true, "Files uploaded successfully");
+
+      // Add a small delay before refetching to ensure backend processing is complete
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await refetch();
     } catch (error) {
-      console.error("Error picking document:", error);
-      handleDownloadStatus(false, "Error selecting files");
+      console.error("Error picking or uploading document:", error);
+      handleDownloadStatus(false, "Error uploading files");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -177,7 +198,7 @@ const QRCodeDetails = () => {
             onScanPress={handleScan}
             onUploadPress={handleUpload}
             onSchedulePress={handleSchedule}
-            disabled={isScanning}
+            disabled={isScanning || isUploading}
           />
 
           {showAlert.show && (

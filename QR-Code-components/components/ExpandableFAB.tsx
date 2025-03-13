@@ -20,7 +20,6 @@ const ExpandableFAB: React.FC<ExpandableFABProps> = ({
 
   const toggleFAB = () => {
     setIsExpanded(!isExpanded);
-    console.log("FAB toggled:", !isExpanded);
   };
 
   const renderSecondaryFAB = (
@@ -41,7 +40,6 @@ const ExpandableFAB: React.FC<ExpandableFABProps> = ({
       <Fab
         size="sm"
         onPress={() => {
-          console.log("Secondary FAB clicked");
           onPress();
           toggleFAB();
         }}
