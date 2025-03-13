@@ -12,41 +12,45 @@ import {
   InputField,
   Box,
   VStack,
-  Select,
-  SelectTrigger,
-  SelectInput,
-  SelectIcon,
-  SelectPortal,
-  SelectBackdrop,
-  SelectContent,
-  SelectDragIndicator,
-  SelectDragIndicatorWrapper,
-  SelectItem,
   Spinner,
 } from "../../components/ui";
-import { ChevronDown } from "lucide-react-native";
 import { MultiSelectPopover } from "./MultiSelectPopover";
+import { QRCode } from "../../types";
 
-interface AddQRCodeModalProps {
+interface EditQRCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (data: {
+  onEdit: (data: {
+    id: string;
     name: string;
     enabledFunctions: { files: boolean; schedules: boolean };
   }) => void;
+  qrCode: QRCode | null;
   isLoading?: boolean;
 }
 
-const AddQRCodeModal = ({
+const EditQRCodeModal = ({
   isOpen,
   onClose,
-  onAdd,
+  onEdit,
+  qrCode,
   isLoading = false,
-}: AddQRCodeModalProps) => {
-  const [newQRName, setNewQRName] = React.useState("");
-  const [selectedFunctions, setSelectedFunctions] = React.useState<string[]>([
-    "files",
-  ]);
+}: EditQRCodeModalProps) => {
+  const [qrName, setQRName] = React.useState("");
+  const [selectedFunctions, setSelectedFunctions] = React.useState<string[]>(
+    []
+  );
+
+  // Initialize form values when qrCode changes
+  React.useEffect(() => {
+    if (qrCode) {
+      setQRName(qrCode.name);
+      const functions = [];
+      if (qrCode.enabledFunctions.files) functions.push("files");
+      if (qrCode.enabledFunctions.schedules) functions.push("schedules");
+      setSelectedFunctions(functions);
+    }
+  }, [qrCode]);
 
   const handleFunctionChange = (values: any) => {
     // Ensure we're handling the values as an array
@@ -55,8 +59,16 @@ const AddQRCodeModal = ({
   };
 
   const handleSubmit = () => {
-    onAdd({
-      name: newQRName,
+    if (!qrCode) return;
+
+    if (qrName.trim() === "") {
+      // Could add validation error handling here
+      return;
+    }
+
+    onEdit({
+      id: qrCode.id,
+      name: qrName,
       enabledFunctions: {
         files: selectedFunctions.includes("files"),
         schedules: selectedFunctions.includes("schedules"),
@@ -67,8 +79,8 @@ const AddQRCodeModal = ({
   };
 
   const handleClose = () => {
-    setNewQRName("");
-    setSelectedFunctions(["files"]); // Reset to default
+    setQRName("");
+    setSelectedFunctions([]);
     onClose();
   };
 
@@ -81,7 +93,7 @@ const AddQRCodeModal = ({
     <Modal isOpen={isOpen} onClose={handleClose}>
       <ModalContent>
         <ModalHeader>
-          <Text className="text-xl font-bold">Add New QR Code</Text>
+          <Text className="text-xl font-bold">Edit QR Code</Text>
           <ModalCloseButton />
         </ModalHeader>
 
@@ -92,8 +104,8 @@ const AddQRCodeModal = ({
               <Input size="md">
                 <InputField
                   placeholder="Enter QR code name"
-                  value={newQRName}
-                  onChangeText={setNewQRName}
+                  value={qrName}
+                  onChangeText={setQRName}
                 />
               </Input>
             </Box>
@@ -124,19 +136,13 @@ const AddQRCodeModal = ({
             variant="solid"
             size="md"
             className="bg-primary-600"
-            onPress={() => {
-              if (newQRName.trim() === "") {
-                // Could add validation error handling here
-                return;
-              }
-              handleSubmit();
-            }}
+            onPress={handleSubmit}
             isDisabled={isLoading}
           >
             {isLoading ? (
               <Spinner color="white" size="small" />
             ) : (
-              <Text className="text-white">Add QR Code</Text>
+              <Text className="text-white">Save Changes</Text>
             )}
           </Button>
         </ModalFooter>
@@ -145,4 +151,4 @@ const AddQRCodeModal = ({
   );
 };
 
-export default AddQRCodeModal;
+export default EditQRCodeModal;

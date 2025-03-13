@@ -8,6 +8,11 @@ import {
   InputField,
   Spinner,
   ScrollView,
+  RefreshControl,
+  useToast,
+  Toast,
+  ToastTitle,
+  ToastDescription,
 } from "../../components/ui";
 import SwipeableQRCode from "../components/SwipeableQRCode";
 import AddQRCodeModal from "../components/AddQRCodeModal";
@@ -25,6 +30,7 @@ import {
 import { useAuth } from "../../src/api/hooks/useAuth";
 import ErrorScreen from "../../src/screens/ErrorScreen";
 import LoadingScreen from "../../src/screens/LoadingScreen";
+import { useLocationContext } from "@/src/context/LocationContext";
 
 // Define the navigation param list type
 type RootStackParamList = {
@@ -36,12 +42,14 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const QRCodes = () => {
   const navigation = useNavigation<NavigationProp>();
+  const toast = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Get the current location from auth context
-  const { data: userData } = useAuth();
-  const currentLocation = userData?.locations?.[0];
+  // Use the location context instead of auth context
+  const { selectedLocation } = useLocationContext();
+  const currentLocation = selectedLocation;
 
   // If no location is selected, show an error state
   if (!currentLocation?.id) {
@@ -54,21 +62,27 @@ const QRCodes = () => {
   }
 
   // Use React Query hooks
-  const {
-    data: qrCodes,
-    isLoading,
-    error,
-    refetch,
-  } = useQRCodes();
+  const { data: qrCodes, isLoading, error, refetch } = useQRCodes();
 
   const createQRCode = useCreateQRCode();
   const updateQRCode = useUpdateQRCode();
   const deleteQRCode = useDeleteQRCode();
 
+  // Handle pull-to-refresh
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  }, [refetch]);
+
   // Filter QR codes based on search query
   const filteredQRCodes = useMemo(() => {
     if (!qrCodes) return [];
-    return qrCodes.filter((qrCode) =>
+
+    // Make sure qrCodes is an array before filtering
+    const qrCodesArray = Array.isArray(qrCodes) ? qrCodes : [];
+
+    return qrCodesArray.filter((qrCode) =>
       qrCode.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [qrCodes, searchQuery]);
@@ -78,34 +92,118 @@ const QRCodes = () => {
     enabledFunctions: { files: boolean; schedules: boolean };
   }) => {
     try {
-      await createQRCode.mutateAsync({
+      const result = await createQRCode.mutateAsync({
         name: data.name,
         locationId: currentLocation.id,
         enabledFunctions: data.enabledFunctions,
         createdAt: new Date().toISOString(),
       });
+
+      console.log("Created QR code:", result);
+
+      // Show success toast
+      toast.show({
+        render: () => (
+          <Toast action="success" variant="solid">
+            <ToastTitle>Success</ToastTitle>
+            <ToastDescription>QR code created successfully</ToastDescription>
+          </Toast>
+        ),
+        placement: "top",
+        duration: 3000,
+      });
+
+      // Refetch QR codes to update the list
+      refetch();
       setIsAddDialogOpen(false);
     } catch (error) {
       console.error("Error adding QR code:", error);
-      // Show error message to user
+
+      // Show error toast
+      toast.show({
+        render: () => (
+          <Toast action="error" variant="solid">
+            <ToastTitle>Error</ToastTitle>
+            <ToastDescription>Failed to create QR code</ToastDescription>
+          </Toast>
+        ),
+        placement: "top",
+        duration: 3000,
+      });
     }
   };
 
   const handleEditQR = async (qrCode: QRCode) => {
     try {
-      await updateQRCode.mutateAsync(qrCode);
+      const result = await updateQRCode.mutateAsync(qrCode);
+
+      console.log("Updated QR code:", result);
+
+      // Show success toast
+      toast.show({
+        render: () => (
+          <Toast action="success" variant="solid">
+            <ToastTitle>Success</ToastTitle>
+            <ToastDescription>QR code updated successfully</ToastDescription>
+          </Toast>
+        ),
+        placement: "top",
+        duration: 3000,
+      });
+
+      // Refetch QR codes to update the list
+      refetch();
     } catch (error) {
       console.error("Error updating QR code:", error);
-      // Show error message to user
+
+      // Show error toast
+      toast.show({
+        render: () => (
+          <Toast action="error" variant="solid">
+            <ToastTitle>Error</ToastTitle>
+            <ToastDescription>Failed to update QR code</ToastDescription>
+          </Toast>
+        ),
+        placement: "top",
+        duration: 3000,
+      });
     }
   };
 
   const handleDeleteQR = async (qrCode: QRCode) => {
     try {
-      await deleteQRCode.mutateAsync(qrCode.id);
+      const result = await deleteQRCode.mutateAsync(qrCode.id);
+
+      console.log("Deleted QR code:", result);
+
+      // Show success toast
+      toast.show({
+        render: () => (
+          <Toast action="success" variant="solid">
+            <ToastTitle>Success</ToastTitle>
+            <ToastDescription>QR code deleted successfully</ToastDescription>
+          </Toast>
+        ),
+        placement: "top",
+        duration: 3000,
+      });
+
+      // Refetch QR codes to update the list
+      refetch();
     } catch (error) {
       console.error("Error deleting QR code:", error);
-      // Show error message to user
+
+      // Show error toast
+      toast.show({
+        render: () => (
+          <Toast action="error" variant="solid">
+            <ToastTitle>Error</ToastTitle>
+            <ToastDescription>Failed to delete QR code</ToastDescription>
+          </Toast>
+        ),
+        placement: "top",
+        duration: 3000,
+      });
     }
   };
 
@@ -129,7 +227,7 @@ const QRCodes = () => {
   return (
     <Box className="flex-1 bg-background-50">
       <Box className="p-4 bg-white border-b border-outline-200 shadow-soft-1">
-        <HStack space="sm" className="items-center">
+        <HStack space="sm" className="items-center w-full">
           <Box className="flex-1 relative">
             <Box className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
               <Search size={20} color="#6B7280" />
@@ -154,25 +252,52 @@ const QRCodes = () => {
         </HStack>
       </Box>
 
-      <ScrollView className="flex-1">
-        <Box className="p-4 space-y-3">
+      <Box className="p-4 space-y-3 flex-1">
+        <ScrollView
+          style={{ flex: 1, height: "100%" }}
+          contentContainerStyle={{ paddingBottom: 20, width: "100%" }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#2563EB"]} // Primary color
+              tintColor="#2563EB"
+            />
+          }
+        >
           {filteredQRCodes.length === 0 ? (
             <Box className="py-8 items-center">
-              <Text className="text-gray-500">No QR codes found</Text>
+              <Text className="text-gray-500">
+                {isLoading
+                  ? "Loading QR codes..."
+                  : error
+                  ? "Error loading QR codes"
+                  : "No QR codes found"}
+              </Text>
+            </Box>
+          ) : filteredQRCodes.map ? (
+            <Box style={{ width: "100%" }}>
+              {filteredQRCodes.map((qrCode) => (
+                <SwipeableQRCode
+                  key={qrCode.id}
+                  qrCode={qrCode}
+                  onEdit={handleEditQR}
+                  onDelete={handleDeleteQR}
+                  onQRCodeClick={handleQRCodeClick}
+                  isEditLoading={updateQRCode.isPending}
+                  isDeleteLoading={deleteQRCode.isPending}
+                />
+              ))}
             </Box>
           ) : (
-            filteredQRCodes.map((qrCode) => (
-              <SwipeableQRCode
-                key={qrCode.id}
-                qrCode={qrCode}
-                onEdit={handleEditQR}
-                onDelete={handleDeleteQR}
-                onQRCodeClick={handleQRCodeClick}
-              />
-            ))
+            <Box className="py-8 items-center">
+              <Text className="text-gray-500">
+                Error: QR codes data is not in the expected format
+              </Text>
+            </Box>
           )}
-        </Box>
-      </ScrollView>
+        </ScrollView>
+      </Box>
 
       <AddQRCodeModal
         isOpen={isAddDialogOpen}

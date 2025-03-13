@@ -1,6 +1,12 @@
 import React from "react";
 import { Box, Text, HStack } from "../../components/ui";
-import { QrCode, CalendarDays, ArrowUp, Activity } from "lucide-react-native";
+import {
+  QrCode,
+  CalendarDays,
+  ArrowUp,
+  Activity,
+  ArrowDown,
+} from "lucide-react-native";
 import DashboardCard from "../components/DashboardCard";
 import { useDashboard } from "../../src/api/hooks";
 import LoadingScreen from "../../src/screens/LoadingScreen";
@@ -29,11 +35,19 @@ const Dashboard = () => {
           title="Total QR Codes"
           value={dashboardData.totalQRCodes}
           icon={QrCode}
-          iconColor="text-primary-500"
-          metricIcon={ArrowUp}
+          iconColor={
+            dashboardData.weeklyGrowth > 0
+              ? "text-success-500"
+              : "text-error-500"
+          }
+          metricIcon={dashboardData.weeklyGrowth > 0 ? ArrowUp : ArrowDown}
           metricText="% this week"
-          metricValue={`+${dashboardData.weeklyGrowth}`}
-          metricColor="text-success-500"
+          metricValue={`${dashboardData.weeklyGrowth.toFixed(1)}`}
+          metricColor={
+            dashboardData.weeklyGrowth > 0
+              ? "text-success-500"
+              : "text-error-500"
+          }
         />
 
         <DashboardCard

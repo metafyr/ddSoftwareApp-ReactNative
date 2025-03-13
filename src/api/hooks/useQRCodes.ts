@@ -8,7 +8,7 @@ export const useQRCodes = () => {
   const { selectedLocation } = useLocationContext();
 
   return useQuery({
-    queryKey: ["qrcodes", selectedLocation?.id],
+    queryKey: ["qrCodes", selectedLocation?.id],
     queryFn: async () => {
       if (!selectedLocation?.id) {
         return [];
@@ -52,7 +52,9 @@ export const useCreateQRCode = () => {
     },
     onSuccess: (data, variables, context) => {
       // Invalidate the QR codes query to refetch the list
-      queryClient.invalidateQueries({ queryKey: ["qrCodes"] });
+      queryClient.invalidateQueries({
+        queryKey: ["qrCodes", selectedLocation?.id],
+      });
     },
   });
 };
@@ -75,7 +77,7 @@ export const useUpdateQRCode = () => {
       // Update the cache for this specific QR code
       queryClient.setQueryData(["qrCode", data.id], data);
       // Invalidate the QR codes list
-      queryClient.invalidateQueries({ queryKey: ["qrCodes"] });
+      queryClient.invalidateQueries({ queryKey: ["qrCodes", data.locationId] });
     },
   });
 };
@@ -94,7 +96,9 @@ export const useDeleteQRCode = () => {
       // Remove the QR code from the cache
       queryClient.removeQueries({ queryKey: ["qrCode", id] });
       // Invalidate the QR codes list
-      queryClient.invalidateQueries({ queryKey: ["qrCodes"] });
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "qrCodes",
+      });
     },
   });
 };
