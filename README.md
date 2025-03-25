@@ -1,48 +1,83 @@
-# gluestack-ui v2 Dashboard Application
+# ddSoftwareApp-ReactNative
+
+A React Native application for managing QR codes, schedules, and locations. Built with Expo and Gluestack UI, following the Feature-Slice Architecture pattern.
+
+## Architecture
+
+This application follows the **Feature-Slice Architecture (FSA)** pattern, which organizes code by feature first, then by technical concerns. This architecture promotes:
+
+- Better organization and discoverability
+- Improved maintainability
+- Enhanced scalability
+- Clear separation of concerns
+
+For detailed information about the architecture, see:
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - Overview of the application structure
+- [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) - Guide for developers working on the codebase
+
+## Features
+
+- **Authentication**: User login and session management
+- **Dashboard**: Overview of QR codes, schedules, and activities
+- **QR Codes**: Create, view, and manage QR codes
+- **Schedules**: Schedule management with results tracking
+- **Settings**: User settings and application configuration
+
+## Tech Stack
+
+- **React Native**: Core framework
+- **Expo**: Development platform
+- **Gluestack UI**: UI component library
+- **React Navigation**: Navigation library
+- **React Query**: Data fetching and state management
+- **TypeScript**: Type safety
+
+## Project Structure
+
+```
+src/
+├── app/                    # Application entry point and global config
+│   ├── providers/          # Top-level providers
+│   ├── navigation/         # Navigation setup
+│   └── App.tsx             # Main App component
+│
+├── features/               # Feature modules
+│   ├── auth/               # Authentication feature
+│   ├── dashboard/          # Dashboard feature
+│   ├── qr-codes/           # QR code feature
+│   ├── schedules/          # Schedules feature
+│   └── settings/           # Settings feature
+│
+└── shared/                 # Shared resources
+    ├── api/                # API client and hooks
+    ├── ui/                 # Shared UI components
+    └── types/              # Shared type definitions
+```
 
 ## Installation
-Ensure you have Node.js and Expo CLI installed on your machine.
-
-Clone this repository:
 
 ```bash
-git clone git@github.com:gluestack/ui-example-nativewind.git dashboard-app
-cd dashboard-app
+# Clone the repository
+git clone <repository-url>
+
+# Install dependencies
+yarn install
+
+# Start the development server
+yarn start
 ```
 
-Install dependencies:
+## Development
 
-```bash
-npm install
- or
-yarn
-```
-
-Run the Dashboard app:
-```bash
-expo start
-```
-
-This will start the Expo development server, and you can choose to run the app on an emulator, a physical device, or the web.
-
-For detailed information on each component and its props, refer to the documentation provided. => https://gluestack.io/ui/docs/home/overview/introduction
-
-## Give it a shot!
-[Try it in your browser](https://ui-example-nativewind.vercel.app) or scan the QR code below <br/><br/>
-<img src="https://qr.expo.dev/eas-update?slug=exp&projectId=42cce9b5-9fbe-4572-92ba-fc43b2437a85&groupId=5a598f1d-f9ad-4f4e-ab64-da240438da2b&host=u.expo.dev" alt="expo-icon" width="200" height="200"/> <br/>
-with the Expo Go app on your phone.
-
-## Created By GeekyAnts
-
-GeekyAnts is a team of React Native experts who love open-source and solving developers problems. We’ve been working on React Native since 2015 and have designed and built React Native apps for almost 200+ clients across the globe. Our clients include startups to big enterprises! Need help with your React Native app?
-
-[Contact Us](https://geekyants.com/?utm_source=gluestack-ui-home&utm_medium=home-page&utm_campaign=meet-the-creators)
+For information on developing with this codebase, see the [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md).
 
 ## Contributing
-We welcome contributions from the community! If you want to report bugs, suggest improvements, or add new features, please create an issue, we will actively look into it.
+
+1. Create a new branch for your feature or fix
+2. Follow the architecture patterns established in the codebase
+3. Write tests for your changes
+4. Submit a pull request with a clear description of your changes
 
 ## License
-This project is licensed under the MIT License.
 
-## Contact
-For any inquiries or feedback join our Discord Channel => https://discord.com/invite/V5SU7HZSAQ
+This project is licensed under the MIT License.

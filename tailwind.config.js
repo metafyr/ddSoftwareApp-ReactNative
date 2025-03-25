@@ -4,10 +4,9 @@ const gluestackPlugin = require("@gluestack-ui/nativewind-utils/tailwind-plugin"
 module.exports = {
   darkMode: "media",
   content: [
-    "./kitchensink-components/**/**/*.{html,js,jsx,ts,tsx}",
     "./components/**/*.{html,js,jsx,ts,tsx}",
-    "./components/ui/**/*.{html,js,jsx,ts,tsx}",
-    "./QR-Code-components/**/*.{html,js,jsx,ts,tsx}",
+    "./components/**/*.{js,jsx,ts,tsx}",
+    "./src/**/*.{js,jsx,ts,tsx}",
     "./App.{html,js,jsx,ts,tsx}",
   ],
   presets: [require("nativewind/preset")],
