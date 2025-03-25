@@ -6,6 +6,23 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "ddsoftware",
+    "linking": {
+      "prefixes": ["ddsoftware://", "https://ddsoftware.app"],
+      "config": {
+        "screens": {
+          "MainDashboard": {
+            "path": "home"
+          },
+          "QRCodeDetails": "qr/:qrId",
+          "QRScanPage": {
+            "path": "physical/:qrId",
+            "params": {
+              "isPhysicalId": true
+            }
+          }
+        }
+      }
+    },
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -17,8 +34,15 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ddsoftware.qrcodeapp",
+      "associatedDomains": ["applinks:ddsoftware.app"],
       "infoPlist": {
-        "NSCameraUsageDescription": "Camera permission is required to scan documents"
+        "NSCameraUsageDescription": "Camera permission is required to scan documents",
+        "NSUserNotificationUsageDescription": "We need to send you notifications about your downloaded files",
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["ddsoftware"]
+          }
+        ]
       }
     },
     "android": {
@@ -27,7 +51,31 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.ddsoftware.qrcodeapp",
-      "permissions": ["android.permission.CAMERA"]
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "ddsoftware",
+              "host": "*"
+            },
+            {
+              "scheme": "https",
+              "host": "*.ddsoftware.app"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
+      "permissions": [
+        "android.permission.CAMERA",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "SCHEDULE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -55,13 +103,23 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Camera permission is required to scan documents"
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
         }
       ],
       [
         "@react-native-community/datetimepicker",
         {
           "androidPackage": "com.reactcommunity.rndatetimepicker"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#ffffff",
+          "sounds": ["./assets/notification.wav"]
         }
       ]
     ]

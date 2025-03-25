@@ -42,6 +42,7 @@ export const AUTH_CONFIG = {
     "COGNITO_REDIRECT_SIGN_OUT",
     "ddsoftware://signout/"
   ),
+  API_URL: getEnvVar("API_URL", "https://api.ddsoftware.com.sg"),
 };
 
 export const getAuthConfig = () => {

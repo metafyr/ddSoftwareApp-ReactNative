@@ -1,6 +1,7 @@
 import React from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { Box, Button, Text, Heading, VStack, Image } from "../../components/ui";
+import { Link, LinkText } from "../../components/ui/link";
 import { useSignIn } from "../api/hooks/useAuth";
 import { NavigationProp } from "@react-navigation/native";
 import { RootStackParamList } from "../types";
@@ -17,20 +18,22 @@ const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <Box className="flex-1 justify-center items-center p-6 bg-background-50">
-      <VStack space="lg" className="w-full max-w-sm items-center">
+    <Box className="flex-1 flex-col justify-between p-6 bg-background-50">
+      {/* Top section with logo - positioned lower */}
+      <Box className="flex-1 items-center justify-center pt-[25%]">
         <Image
-          source={require("../../assets/light-logo.svg")}
+          source={require("../../assets/icon.png")}
           alt="Logo"
-          className="w-24 h-24 mb-6"
+          className="w-20 h-20 mb-6"
         />
 
+        {/* Welcome and sign-in content - positioned in middle section */}
         <Heading size="xl" className="mb-6 text-center">
           Welcome
         </Heading>
 
         <Text className="text-center mb-8 text-gray-600">
-          Sign in to access your QR codes, files, and schedules
+          Sign in to DD Software
         </Text>
 
         {error && (
@@ -42,15 +45,22 @@ const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
         <Button
           variant="solid"
           size="lg"
-          className="bg-primary-600 w-full"
+          className="bg-primary-600 w-full mt-4 mb-8"
           onPress={handleSignIn}
           isDisabled={isPending}
         >
           <Text className="text-white">
-            {isPending ? "Signing in..." : "Sign in with Cognito"}
+            {isPending ? "Signing in..." : "Sign in with Google"}
           </Text>
         </Button>
-      </VStack>
+      </Box>
+
+      {/* Register link with spacer to push to bottom */}
+      <Box className="w-full items-center pb-6">
+        <Link href="https://ddsoftware.com" className="text-gray-400 text-sm">
+          <LinkText>Visit ddsoftware.com to register</LinkText>
+        </Link>
+      </Box>
     </Box>
   );
 };

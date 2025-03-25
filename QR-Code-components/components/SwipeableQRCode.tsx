@@ -60,12 +60,14 @@ const SwipeableQRCode = ({
   const handleEditSubmit = (updatedQRCode: {
     id: string;
     name: string;
+    uuid?: string;
     enabledFunctions: { files: boolean; schedules: boolean };
   }) => {
     // Create a new QRCode object with the updated values while preserving other properties
     const editedQRCode: QRCode = {
       ...qrCode,
       name: updatedQRCode.name,
+      uuid: updatedQRCode.uuid,
       enabledFunctions: updatedQRCode.enabledFunctions,
     };
 

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../apiClient";
 import { API_ENDPOINTS } from "../endpoints";
 import { File } from "../../types";
+import { Platform } from "react-native";
 
 export const useFilesByQRCode = (qrCodeId: string) => {
   return useQuery({
@@ -66,20 +67,52 @@ export const useUploadFile = () => {
       // Create a form data object for the file upload
       const formData = new FormData();
 
+      // Sanitize filename to remove problematic characters
+      const sanitizedFileName = fileName
+        .replace(/\s+/g, "_") // Replace spaces with underscores
+        .replace(/[()]/g, "") // Remove parentheses
+        .replace(/[^a-zA-Z0-9_.-]/g, ""); // Remove other special characters
+
       // Add the file to the form data
-      // @ts-ignore - FormData type definition issue in React Native
-      formData.append("file", {
-        uri: fileUri,
-        name: fileName,
-        type: fileType,
-      });
+      try {
+        // Format URI based on platform
+        let formattedUri = fileUri;
+
+        if (Platform.OS === "ios") {
+          // For iOS, we remove the file:// prefix
+          formattedUri = fileUri.replace("file://", "");
+        } else if (Platform.OS === "android") {
+          // For Android, ensure the URI is properly formatted
+          // This helps with differences between emulator and physical devices
+          if (fileUri.startsWith("content://")) {
+            // Content URIs are usually properly handled by React Native
+            formattedUri = fileUri;
+          }
+        }
+
+        // Create file object with sanitized name
+        const fileObject = {
+          uri: formattedUri,
+          name: sanitizedFileName,
+          type: fileType,
+        };
+
+        // Explicitly cast as any to handle React Native's FormData implementation
+        formData.append("file", fileObject as any);
+      } catch (error: any) {
+        console.error(
+          "[useUploadFile] Error appending file to FormData:",
+          error
+        );
+        throw new Error(`Failed to append file to FormData: ${error?.message}`);
+      }
 
       // Add other parameters to the form data
       formData.append("qrCodeId", qrCodeId);
       if (folderId) {
         formData.append("folderId", folderId);
       }
-      formData.append("name", fileName);
+      formData.append("name", sanitizedFileName);
       formData.append("fileType", fileType);
       formData.append("isPublic", isPublic ? "true" : "false");
       formData.append("uploadType", uploadType);
@@ -96,9 +129,6 @@ export const useUploadFile = () => {
           body: formData,
         }
       );
-
-      // Log the form data for debugging
-      console.log("[useUploadFile] FormData (before sending):", formData);
 
       return response;
     },

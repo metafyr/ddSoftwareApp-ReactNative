@@ -10,6 +10,7 @@ import QRCodes from "./pages/QRCodes";
 import Schedules from "./pages/Schedules";
 import Settings from "./pages/Settings";
 import QRCodeDetails from "./pages/QRCodeDetails";
+import QRScanPage from "./pages/QRScanPage";
 import { useAuth } from "../src/api/hooks";
 import LoadingScreen from "../src/screens/LoadingScreen";
 import ErrorScreen from "../src/screens/ErrorScreen";
@@ -32,6 +33,7 @@ const bottomTabs = [
     label: "Schedules",
     value: "Schedules",
     icon: "calendar",
+    disabled: true,
   },
   {
     label: "Settings",
@@ -43,7 +45,12 @@ const bottomTabs = [
 const MainContent = () => {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const { data: user, isLoading: isUserLoading, error: userError } = useAuth();
-  const { selectedLocation, setSelectedLocation, locations, isLoading: isLocationsLoading } = useLocationContext();
+  const {
+    selectedLocation,
+    setSelectedLocation,
+    locations,
+    isLoading: isLocationsLoading,
+  } = useLocationContext();
 
   if (isUserLoading || isLocationsLoading) {
     return <LoadingScreen message="Loading your dashboard..." />;
@@ -57,7 +64,7 @@ const MainContent = () => {
       />
     );
   }
-  
+
   return (
     <Box className="flex-1">
       <StatusBar />
@@ -100,6 +107,7 @@ const MainPage = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainContent} />
       <Stack.Screen name="QRCodeDetails" component={QRCodeDetails} />
+      <Stack.Screen name="QRScanPage" component={QRScanPage} />
     </Stack.Navigator>
   );
 };

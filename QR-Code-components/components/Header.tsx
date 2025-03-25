@@ -1,21 +1,21 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Box,
   HStack,
   VStack,
   Text,
-  Pressable,
   Icon,
   Badge,
   BadgeText,
-  BadgeIcon,
+  Select,
+  SelectTrigger,
+  SelectInput,
+  SelectPortal,
+  SelectBackdrop,
+  SelectContent,
+  SelectItem,
 } from "@/components/ui";
-import {
-  ChevronDown,
-  Activity,
-  Settings,
-  GlobeIcon,
-} from "lucide-react-native";
+import { Activity, Settings, ChevronDown } from "lucide-react-native";
 import { Location } from "../../types";
 
 interface HeaderProps {
@@ -35,9 +35,8 @@ export function Header({
   userRole,
   activeTab,
 }: HeaderProps) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // Remove isDropdownOpen state since Select handles this internally
 
-  // Return null if activeTab is Settings
   if (activeTab === "Settings") {
     return null;
   }
@@ -78,61 +77,58 @@ export function Header({
         <Box
           className={`relative ${activeTab === "Dashboard" ? "mt-3" : "mt-0"}`}
         >
-          <Pressable
-            className="bg-white/10 rounded-xl p-3"
-            onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+          <Select
+            selectedValue={currentLocation.id}
+            onValueChange={(value) => {
+              const selectedLocation = locations.find(
+                (loc) => loc.id === value
+              );
+              if (selectedLocation) {
+                onLocationChange(selectedLocation);
+              }
+            }}
           >
-            <HStack className="justify-between items-center">
-              <HStack space="sm">
-                <Box className="w-8 h-8 bg-primary-400 rounded-lg items-center justify-center">
-                  <Icon as={Activity} size="md" color="white" />
-                </Box>
-                <VStack>
-                  <Text className="text-xs text-primary-100">
-                    Current Location
-                  </Text>
-                  <Text className="font-medium text-white">
-                    {currentLocation.name}
-                  </Text>
-                </VStack>
-              </HStack>
-              <Icon
-                as={ChevronDown}
-                size="sm"
-                color="white"
-                style={{
-                  transform: [{ rotate: isDropdownOpen ? "180deg" : "0deg" }],
-                }}
-              />
-            </HStack>
-          </Pressable>
-
-          {isDropdownOpen && (
-            <Box className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl border border-gray-200 z-50">
-              {locations.map((location) => (
-                <Pressable
-                  key={location.id}
-                  className="px-4 py-3"
-                  onPress={() => {
-                    onLocationChange(location);
-                    setIsDropdownOpen(false);
-                  }}
-                >
-                  <Text className="text-gray-800 text-sm font-medium">
-                    {location.name}
-                  </Text>
-                </Pressable>
-              ))}
-              <Pressable className="px-4 py-3 border-t border-gray-200">
+            <SelectTrigger className="rounded-xl border-0 py-7 bg-white/10">
+              <HStack className="items-center justify-between w-full pr-6 pl-3">
                 <HStack space="sm">
-                  <Icon as={Settings} size="sm" color="#2563eb" />
-                  <Text className="text-primary-600 text-sm font-medium">
-                    Manage Locations
-                  </Text>
+                  <Box className="w-8 h-8 bg-primary-400 rounded-lg items-center justify-center">
+                    <Icon as={Activity} size="sm" color="white" />
+                  </Box>
+                  <VStack>
+                    <Text className="text-xs text-primary-100">
+                      Current Location
+                    </Text>
+                    <Text className="font-medium text-white">
+                      {currentLocation.name}
+                    </Text>
+                  </VStack>
                 </HStack>
-              </Pressable>
-            </Box>
-          )}
+                <Icon as={ChevronDown} size="sm" color="white" />
+              </HStack>
+            </SelectTrigger>
+            <SelectPortal>
+              <SelectBackdrop />
+              <SelectContent>
+                {locations.map((location) => (
+                  <SelectItem
+                    key={location.id}
+                    label={location.name}
+                    value={location.id}
+                  />
+                ))}
+                <SelectItem
+                  key="manage"
+                  label="Manage Locations"
+                  value="manage"
+                >
+                  <HStack space="sm" className="items-center">
+                    <Icon as={Settings} size="sm" color="#2563eb" />
+                    <Text>Manage Locations</Text>
+                  </HStack>
+                </SelectItem>
+              </SelectContent>
+            </SelectPortal>
+          </Select>
         </Box>
       </Box>
     </Box>

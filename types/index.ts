@@ -31,6 +31,7 @@ export interface File {
   url: string;
   isPublic: boolean;
   size: number;
+  mimeType?: string;
   type: "uploaded" | "scanned";
   folderId: string;
   qrCodeId: string;

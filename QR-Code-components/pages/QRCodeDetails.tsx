@@ -28,11 +28,7 @@ import * as DocumentPicker from "expo-document-picker";
 import { useQRCodeDetails, useUploadFile } from "../../src/api/hooks";
 import LoadingScreen from "../../src/screens/LoadingScreen";
 import ErrorScreen from "../../src/screens/ErrorScreen";
-
-type RootStackParamList = {
-  Main: undefined;
-  QRCodeDetails: { qrId: string };
-};
+import { RootStackParamList } from "@/src/types/index";
 
 type QRCodeDetailsRouteProp = RouteProp<RootStackParamList, "QRCodeDetails">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -40,7 +36,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const QRCodeDetails = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<QRCodeDetailsRouteProp>();
-  const { qrId } = route.params;
+  const { qrId, isPhysicalId = false } = route.params;
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [showAlert, setShowAlert] = useState<{
     show: boolean;
@@ -50,7 +46,12 @@ const QRCodeDetails = () => {
   const [isUploading, setIsUploading] = useState(false);
 
   // Use the QR code details hook
-  const { data: qrCode, isLoading, error, refetch } = useQRCodeDetails(qrId);
+  const {
+    data: qrCode,
+    isLoading,
+    error,
+    refetch,
+  } = useQRCodeDetails(qrId, { isPhysicalId });
   const { mutateAsync: uploadFile } = useUploadFile();
 
   const handleBack = () => {
@@ -73,7 +74,6 @@ const QRCodeDetails = () => {
 
   const handleFilePress = (file: File) => {
     // Handle file selection here
-    console.log("Selected file:", file);
   };
 
   const handleDownloadStatus = (success: boolean, message: string) => {
@@ -93,6 +93,7 @@ const QRCodeDetails = () => {
     qrCodeId: qrId,
     onSuccess: (message) => handleDownloadStatus(true, message),
     onError: (message) => handleDownloadStatus(false, message),
+    refetch: refetch,
   });
 
   const handleUpload = async () => {
@@ -104,7 +105,6 @@ const QRCodeDetails = () => {
       });
 
       if (result.canceled) {
-        console.log("User cancelled the upload");
         return;
       }
 
@@ -113,10 +113,18 @@ const QRCodeDetails = () => {
 
       // Upload each file
       const uploadPromises = files.map(async (file) => {
+        // Ensure we have a valid mime type
+        const mimeType =
+          file.mimeType ||
+          (file.name.endsWith(".pdf")
+            ? "application/pdf"
+            : file.name.match(/\.(jpe?g|png|gif|bmp)$/i)
+            ? "image/jpeg"
+            : "application/octet-stream");
         return uploadFile({
           fileUri: file.uri,
           fileName: file.name,
-          fileType: file.mimeType || "application/octet-stream",
+          fileType: mimeType,
           qrCodeId: qrId,
           folderId: undefined,
           isPublic: false,
@@ -124,15 +132,30 @@ const QRCodeDetails = () => {
         });
       });
 
-      await Promise.all(uploadPromises);
-      handleDownloadStatus(true, "Files uploaded successfully");
+      try {
+        await Promise.all(uploadPromises);
+        handleDownloadStatus(true, "Files uploaded successfully");
+      } catch (uploadError: any) {
+        console.error("Error during file upload:", uploadError);
+        handleDownloadStatus(
+          false,
+          `Upload failed: ${uploadError?.message || "Unknown error"}`
+        );
+      }
 
       // Add a small delay before refetching to ensure backend processing is complete
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await refetch();
-    } catch (error) {
-      console.error("Error picking or uploading document:", error);
-      handleDownloadStatus(false, "Error uploading files");
+    } catch (error: any) {
+      console.error(
+        "Error picking or uploading document:",
+        error?.message,
+        error?.stack
+      );
+      handleDownloadStatus(
+        false,
+        `Error: ${error?.message || "Failed to upload files"}`
+      );
     } finally {
       setIsUploading(false);
     }
@@ -151,7 +174,11 @@ const QRCodeDetails = () => {
   if (error || !qrCode) {
     return (
       <ErrorScreen
-        message="Failed to load QR code details. Please try again."
+        message={
+          isPhysicalId
+            ? "Failed to find QR code with this physical ID. The QR code might not be registered."
+            : "Failed to load QR code details. Please try again."
+        }
         onRetry={refetch}
       />
     );
@@ -174,7 +201,11 @@ const QRCodeDetails = () => {
             </Box>
 
             <VStack space="md" className="p-4">
-              <QRCodeCard name={qrCode.name} linkedPhysicalQR={qrCode.uuid} />
+              <QRCodeCard
+                name={qrCode.name}
+                linkedPhysicalQR={qrCode.uuid}
+                createdAt={qrCode.createdAt}
+              />
 
               <DocumentsSection
                 title="Scanned Documents"
@@ -190,7 +221,7 @@ const QRCodeDetails = () => {
                 onDownloadStatus={handleDownloadStatus}
               />
 
-              <ScheduleSection schedules={qrCode.schedules} />
+              {/* <ScheduleSection schedules={qrCode.schedules} /> */}
             </VStack>
           </ScrollView>
 
@@ -199,6 +230,7 @@ const QRCodeDetails = () => {
             onUploadPress={handleUpload}
             onSchedulePress={handleSchedule}
             disabled={isScanning || isUploading}
+            isLoading={isScanning || isUploading}
           />
 
           {showAlert.show && (

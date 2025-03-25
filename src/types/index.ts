@@ -105,9 +105,10 @@ export interface PaginatedResponse<T> {
 
 // Navigation types
 export type RootStackParamList = {
-  Main: undefined;
+  MainDashboard: undefined;
   SignIn: undefined;
-  QRCodeDetails: { qrId: string };
+  QRCodeDetails: { qrId: string; isPhysicalId?: boolean };
+  QRScanPage: { qrId: string };
   ScheduleDetails: { scheduleId: string };
   FileViewer: { fileId: string };
 };

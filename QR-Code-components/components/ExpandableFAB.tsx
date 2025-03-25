@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { StyleSheet } from "react-native";
-import { Fab, FabIcon, Box } from "../../components/ui";
+import { Fab, FabIcon, Box, Spinner } from "../../components/ui";
 import { Plus, X, Scan, Upload, Calendar } from "lucide-react-native";
 
 interface ExpandableFABProps {
@@ -8,6 +8,7 @@ interface ExpandableFABProps {
   onUploadPress: () => void;
   onSchedulePress: () => void;
   disabled?: boolean;
+  isLoading?: boolean;
 }
 
 const ExpandableFAB: React.FC<ExpandableFABProps> = ({
@@ -15,6 +16,7 @@ const ExpandableFAB: React.FC<ExpandableFABProps> = ({
   onUploadPress,
   onSchedulePress,
   disabled = false,
+  isLoading = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -54,7 +56,7 @@ const ExpandableFAB: React.FC<ExpandableFABProps> = ({
     <Box className="absolute bottom-4 right-4" style={styles.container}>
       {renderSecondaryFAB(3, Scan, onScanPress)}
       {renderSecondaryFAB(2, Upload, onUploadPress)}
-      {renderSecondaryFAB(1, Calendar, onSchedulePress)}
+      {/* {renderSecondaryFAB(1, Calendar, onSchedulePress)} */}
 
       <Fab
         size="lg"
@@ -62,7 +64,11 @@ const ExpandableFAB: React.FC<ExpandableFABProps> = ({
         placement="bottom right"
         isDisabled={disabled}
       >
-        <FabIcon as={isExpanded ? X : Plus} color="white" />
+        {isLoading ? (
+          <Spinner color="white" size="small" />
+        ) : (
+          <FabIcon as={isExpanded ? X : Plus} color="white" />
+        )}
       </Fab>
     </Box>
   );

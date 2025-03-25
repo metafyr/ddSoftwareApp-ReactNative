@@ -31,12 +31,7 @@ import { useAuth } from "../../src/api/hooks/useAuth";
 import ErrorScreen from "../../src/screens/ErrorScreen";
 import LoadingScreen from "../../src/screens/LoadingScreen";
 import { useLocationContext } from "@/src/context/LocationContext";
-
-// Define the navigation param list type
-type RootStackParamList = {
-  Main: undefined;
-  QRCodeDetails: { qrId: string };
-};
+import { RootStackParamList } from "@/src/types/index";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -114,8 +109,6 @@ const QRCodes = () => {
       refetch();
       setIsAddDialogOpen(false);
     } catch (error) {
-      console.error("Error adding QR code:", error);
-
       // Show error toast
       toast.show({
         render: () => (
@@ -134,8 +127,6 @@ const QRCodes = () => {
     try {
       const result = await updateQRCode.mutateAsync(qrCode);
 
-      console.log("Updated QR code:", result);
-
       // Show success toast
       toast.show({
         render: () => (
@@ -151,8 +142,6 @@ const QRCodes = () => {
       // Refetch QR codes to update the list
       refetch();
     } catch (error) {
-      console.error("Error updating QR code:", error);
-
       // Show error toast
       toast.show({
         render: () => (
@@ -171,8 +160,6 @@ const QRCodes = () => {
     try {
       const result = await deleteQRCode.mutateAsync(qrCode.id);
 
-      console.log("Deleted QR code:", result);
-
       // Show success toast
       toast.show({
         render: () => (
@@ -188,8 +175,6 @@ const QRCodes = () => {
       // Refetch QR codes to update the list
       refetch();
     } catch (error) {
-      console.error("Error deleting QR code:", error);
-
       // Show error toast
       toast.show({
         render: () => (

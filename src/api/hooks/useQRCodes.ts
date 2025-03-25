@@ -4,6 +4,10 @@ import { API_ENDPOINTS } from "../endpoints";
 import { QRCode, QRCodeDetailsType } from "../../../types";
 import { useLocationContext } from "../../context/LocationContext";
 
+interface QRCodeDetailsOptions {
+  isPhysicalId?: boolean;
+}
+
 export const useQRCodes = () => {
   const { selectedLocation } = useLocationContext();
 
@@ -21,12 +25,17 @@ export const useQRCodes = () => {
   });
 };
 
-export const useQRCodeDetails = (id: string) => {
+export const useQRCodeDetails = (
+  id: string,
+  options?: QRCodeDetailsOptions
+) => {
+  const isPhysicalId = options?.isPhysicalId || false;
+
   return useQuery({
-    queryKey: ["qrCode", "details", id],
+    queryKey: ["qrCode", "details", id, isPhysicalId],
     queryFn: async () => {
       const response = await apiClient.request<QRCodeDetailsType>(
-        API_ENDPOINTS.QR_CODE_DETAILS(id)
+        API_ENDPOINTS.QR_CODE_DETAILS(id, isPhysicalId)
       );
       return response;
     },

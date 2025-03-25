@@ -7,6 +7,7 @@ import { useIsAuthenticated } from "../api/hooks/useAuth";
 import LoadingScreen from "../screens/LoadingScreen";
 import ErrorScreen from "../screens/ErrorScreen";
 import { RootStackParamList } from "../types";
+import DeepLinkHandler from "./DeepLinkHandler";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -33,11 +34,11 @@ const AuthNavigator = () => {
 
   return (
     <NavigationContainer>
+      <DeepLinkHandler />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <>
-            <Stack.Screen name="Main" component={MainPage} />
-            {/* Add other authenticated screens here */}
+            <Stack.Screen name="MainDashboard" component={MainPage} />
           </>
         ) : (
           <Stack.Screen name="SignIn" component={SignInScreen} />

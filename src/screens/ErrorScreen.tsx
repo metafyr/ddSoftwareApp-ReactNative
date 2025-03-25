@@ -11,7 +11,7 @@ const ErrorScreen: React.FC<ErrorScreenProps> = ({ message, onRetry }) => {
   return (
     <Box className="flex-1 justify-center items-center bg-background-50 p-6">
       <VStack space="lg" className="items-center max-w-sm">
-        <Icon as={AlertCircle} size="xl" color="red.500" />
+        <Icon as={AlertCircle} size="xl" className="text-error-500" />
 
         <Heading size="lg" className="text-center">
           Something went wrong

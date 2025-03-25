@@ -5,10 +5,13 @@
  * Values are set based on environment variables if available.
  */
 
+import { API_URL } from "@env";
+
 const getBaseUrl = () => {
-  // In production, this would come from environment variables
-  if (process.env.API_URL) {
-    return process.env.API_URL;
+  console.log("Current API_URL:", API_URL);
+
+  if (API_URL) {
+    return API_URL;
   }
   // Local development default
   return "http://10.0.2.2:3001";
@@ -31,5 +34,5 @@ export const API_CONFIG = {
   },
 
   // Security settings
-  SECURE: process.env.NODE_ENV === "production",
+  SECURE: process.env.NODE_ENV === "production", // This is still fine as NODE_ENV is a React Native system variable
 };
