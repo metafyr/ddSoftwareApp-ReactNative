@@ -129,10 +129,13 @@ export const DocumentsSection = ({
 
   return (
     <Box className="bg-white p-4 rounded-xl">
-      <Text className="text-lg font-semibold mb-4">{title}</Text>
+      <Box className="mb-4">
+        <Text className="text-lg font-semibold">{title}</Text>
+        <Box className="h-0.5 bg-primary-500 w-1/3 mt-1" />
+      </Box>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <HStack space="sm" className="pb-2">
-          {files.map((file) => (
+          {[...files].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((file) => (
             <Pressable key={file.id} onPress={() => handleFileDownload(file)}>
               <Box className="bg-background-50 p-3 rounded-lg w-32">
                 <Text className="font-medium" numberOfLines={1}>
