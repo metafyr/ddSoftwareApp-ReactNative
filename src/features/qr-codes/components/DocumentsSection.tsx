@@ -18,6 +18,8 @@ import {
 import { File } from "@shared/types";
 import * as FileSystem from "expo-file-system";
 import * as Notifications from "expo-notifications";
+import * as Sharing from "expo-sharing";
+import * as Linking from "expo-linking";
 import { Platform } from "react-native";
 
 interface DocumentsSectionProps {
@@ -64,19 +66,103 @@ export const DocumentsSection = ({
     }
   };
 
+  // Function to open a file
+  const openFile = async (fileUri: string, mimeType?: string) => {
+    try {
+      // First verify the file exists
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      if (!fileInfo.exists) {
+        throw new Error("File not found");
+      }
+
+      // For Android, we need to handle file opening differently
+      if (Platform.OS === "android") {
+        try {
+          // Get the content URI
+          const contentUri = await FileSystem.getContentUriAsync(fileUri);
+          console.log("Content URI:", contentUri);
+
+          // Determine the correct MIME type if not provided
+          let finalMimeType = mimeType;
+          if (!finalMimeType) {
+            const extension = fileUri.split(".").pop()?.toLowerCase();
+            switch (extension) {
+              case "jpg":
+              case "jpeg":
+                finalMimeType = "image/jpeg";
+                break;
+              case "png":
+                finalMimeType = "image/png";
+                break;
+              case "pdf":
+                finalMimeType = "application/pdf";
+                break;
+              default:
+                finalMimeType = "application/octet-stream";
+            }
+          }
+
+          // Create a temporary file in the cache directory
+          const tempFileName = `temp_${Date.now()}_${fileUri.split("/").pop()}`;
+          const tempFileUri = `${FileSystem.cacheDirectory}${tempFileName}`;
+
+          // Copy the file to the cache directory
+          await FileSystem.copyAsync({
+            from: fileUri,
+            to: tempFileUri,
+          });
+
+          // Share the temporary file
+          await Sharing.shareAsync(tempFileUri, {
+            mimeType: finalMimeType,
+            dialogTitle: "Open File",
+          });
+
+          // Clean up the temporary file after a delay
+          setTimeout(async () => {
+            try {
+              await FileSystem.deleteAsync(tempFileUri);
+            } catch (error) {
+              console.error("Error cleaning up temp file:", error);
+            }
+          }, 1000);
+
+          return;
+        } catch (error) {
+          console.error("Error opening file with content URI:", error);
+        }
+      }
+
+      // For iOS or if Android content URI fails, try direct file URI
+      const supported = await Linking.canOpenURL(fileUri);
+      if (supported) {
+        await Linking.openURL(fileUri);
+      } else {
+        throw new Error("Cannot open this file type");
+      }
+    } catch (error) {
+      console.error("Error opening file:", error);
+      throw error;
+    }
+  };
+
   const handleFileDownload = async (file: File) => {
     try {
       const filename = file.name;
-      // Use a more persistent directory for downloaded files
-      const directory =
-        Platform.OS === "ios"
-          ? FileSystem.documentDirectory
-          : FileSystem.cacheDirectory;
-
-      const fileUri = directory + filename;
+      // Use document directory for persistent storage
+      const directory = FileSystem.documentDirectory;
+      const fileUri = `${directory}${filename}`;
 
       // Show downloading status
       onDownloadStatus(true, `Downloading ${filename}...`);
+
+      // Check if file already exists
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      if (fileInfo.exists) {
+        console.log("File already exists, opening...");
+        await openFile(fileUri, file.mimeType);
+        return;
+      }
 
       // Create download options with Android notification configuration
       const downloadOptions = {
@@ -101,6 +187,7 @@ export const DocumentsSection = ({
           const progress =
             downloadProgress.totalBytesWritten /
             downloadProgress.totalBytesExpectedToWrite;
+          console.log(`Download progress: ${Math.round(progress * 100)}%`);
         }
       );
 
@@ -108,22 +195,32 @@ export const DocumentsSection = ({
 
       if (result?.uri) {
         // Make sure file is accessible
-        const fileInfo = await FileSystem.getInfoAsync(result.uri);
+        const downloadedFileInfo = await FileSystem.getInfoAsync(result.uri);
+        console.log("Downloaded file info:", downloadedFileInfo);
 
-        if (fileInfo.exists) {
+        if (downloadedFileInfo.exists) {
           // Send notification with file info
           await sendNotification(filename, result.uri);
 
           console.log("File downloaded successfully:", result.uri);
+
+          // Wait a short moment to ensure file is fully written
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Open the file after successful download
+          await openFile(result.uri, file.mimeType);
+
+          onDownloadStatus(true, `File downloaded successfully: ${filename}`);
+          onFilePress?.(file);
         } else {
-          console.error("File exists in result but not found on filesystem");
+          throw new Error("File exists in result but not found on filesystem");
         }
-        onDownloadStatus(true, `File downloaded successfully: ${filename}`);
-        onFilePress?.(file);
+      } else {
+        throw new Error("Download completed but no URI returned");
       }
     } catch (error) {
-      onDownloadStatus(false, "Failed to download file. Please try again.");
       console.error("Download error:", error);
+      onDownloadStatus(false, "Failed to download file. Please try again.");
     }
   };
 
@@ -135,21 +232,27 @@ export const DocumentsSection = ({
       </Box>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <HStack space="sm" className="pb-2">
-          {[...files].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((file) => (
-            <Pressable key={file.id} onPress={() => handleFileDownload(file)}>
-              <Box className="bg-background-50 p-3 rounded-lg w-32">
-                <Text className="font-medium" numberOfLines={1}>
-                  {file.name}
-                </Text>
-                <Box className="flex-row justify-between items-center">
-                  <Text className="text-sm text-gray-500">
-                    {new Date(file.createdAt).toLocaleDateString()}
+          {[...files]
+            .sort(
+              (a, b) =>
+                new Date(b.createdAt).getTime() -
+                new Date(a.createdAt).getTime()
+            )
+            .map((file) => (
+              <Pressable key={file.id} onPress={() => handleFileDownload(file)}>
+                <Box className="bg-background-50 p-3 rounded-lg w-32">
+                  <Text className="font-medium" numberOfLines={1}>
+                    {file.name}
                   </Text>
-                  <DownloadIcon size={16} color="#6B7280" />
+                  <Box className="flex-row justify-between items-center">
+                    <Text className="text-sm text-gray-500">
+                      {new Date(file.createdAt).toLocaleDateString()}
+                    </Text>
+                    <DownloadIcon size={16} color="#6B7280" />
+                  </Box>
                 </Box>
-              </Box>
-            </Pressable>
-          ))}
+              </Pressable>
+            ))}
         </HStack>
       </ScrollView>
     </Box>

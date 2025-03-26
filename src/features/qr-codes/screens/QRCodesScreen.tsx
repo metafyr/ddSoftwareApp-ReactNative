@@ -38,6 +38,7 @@ const QRCodesScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeSwipeId, setActiveSwipeId] = useState<string | null>(null);
 
   const { selectedLocation } = useLocationContext();
   const currentLocation = selectedLocation;
@@ -62,6 +63,7 @@ const QRCodesScreen = () => {
   // Handle pull-to-refresh
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
+    setActiveSwipeId(null); // Reset active swipe when refreshing
     await refetch();
     setRefreshing(false);
   }, [refetch]);
@@ -77,6 +79,12 @@ const QRCodesScreen = () => {
       qrCode.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [qrCodes, searchQuery]);
+
+  // Reset active swipe when adding a new QR code
+  const handleOpenAddDialog = () => {
+    setActiveSwipeId(null);
+    setIsAddDialogOpen(true);
+  };
 
   const handleAddQR = async (data: {
     name: string;
@@ -187,6 +195,7 @@ const QRCodesScreen = () => {
   };
 
   const handleQRCodeClick = (qrCode: QRCode) => {
+    setActiveSwipeId(null); // Reset active swipe when navigating
     navigation.navigate("QRCodeDetails", { qrId: qrCode.id });
   };
 
@@ -224,7 +233,7 @@ const QRCodesScreen = () => {
             variant="solid"
             size="md"
             className="bg-primary-600"
-            onPress={() => setIsAddDialogOpen(true)}
+            onPress={handleOpenAddDialog}
           >
             <Plus size={20} color="white" />
           </Button>
@@ -235,6 +244,10 @@ const QRCodesScreen = () => {
         <ScrollView
           style={{ flex: 1, height: "100%" }}
           contentContainerStyle={{ paddingBottom: 20, width: "100%" }}
+          onScroll={() => {
+            // Reset active swipe when scrolling
+            setActiveSwipeId(null);
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -265,6 +278,8 @@ const QRCodesScreen = () => {
                   onQRCodeClick={handleQRCodeClick}
                   isEditLoading={updateQRCode.isPending}
                   isDeleteLoading={deleteQRCode.isPending}
+                  activeSwipeId={activeSwipeId}
+                  setActiveSwipeId={setActiveSwipeId}
                 />
               ))}
             </Box>

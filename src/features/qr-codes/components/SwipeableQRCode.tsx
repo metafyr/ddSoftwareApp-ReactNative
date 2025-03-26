@@ -6,6 +6,7 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
+  runOnJS,
 } from "react-native-reanimated";
 import {
   Gesture,
@@ -22,6 +23,8 @@ interface SwipeableQRCodeProps {
   onQRCodeClick: (qrCode: QRCode) => void;
   isEditLoading?: boolean;
   isDeleteLoading?: boolean;
+  activeSwipeId: string | null;
+  setActiveSwipeId: (id: string | null) => void;
 }
 
 const SwipeableQRCode = ({
@@ -31,10 +34,19 @@ const SwipeableQRCode = ({
   onQRCodeClick,
   isEditLoading = false,
   isDeleteLoading = false,
+  activeSwipeId,
+  setActiveSwipeId,
 }: SwipeableQRCodeProps) => {
   const translateX = useSharedValue(0);
   const SWIPE_THRESHOLD = -50;
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+
+  // Reset position when activeSwipeId changes and it's not this card
+  React.useEffect(() => {
+    if (activeSwipeId !== qrCode.id) {
+      translateX.value = withSpring(0);
+    }
+  }, [activeSwipeId, qrCode.id]);
 
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
@@ -44,8 +56,10 @@ const SwipeableQRCode = ({
     .onEnd((event) => {
       if (event.translationX < SWIPE_THRESHOLD) {
         translateX.value = withSpring(-125);
+        runOnJS(setActiveSwipeId)(qrCode.id);
       } else {
         translateX.value = withSpring(0);
+        runOnJS(setActiveSwipeId)(null);
       }
     });
 
@@ -55,6 +69,9 @@ const SwipeableQRCode = ({
 
   const handleEditPress = () => {
     setIsEditModalOpen(true);
+    // Reset swipe position when buttons are clicked
+    translateX.value = withSpring(0);
+    setActiveSwipeId(null);
   };
 
   const handleEditSubmit = (updatedQRCode: {
@@ -76,6 +93,9 @@ const SwipeableQRCode = ({
 
   const handleDeletePress = () => {
     setIsEditModalOpen(false);
+    // Reset swipe position when buttons are clicked
+    translateX.value = withSpring(0);
+    setActiveSwipeId(null);
     // Only proceed if not already loading
     if (!isDeleteLoading) {
       onDelete(qrCode);
@@ -112,7 +132,12 @@ const SwipeableQRCode = ({
                 { width: "100%", backgroundColor: "white", borderRadius: 8 },
               ]}
             >
-              <Pressable onPress={() => onQRCodeClick(qrCode)}>
+              <Pressable onPress={() => {
+                // Reset swipe position when card is clicked
+                translateX.value = withSpring(0);
+                setActiveSwipeId(null);
+                onQRCodeClick(qrCode);
+              }}>
                 <Box className="bg-white rounded-lg p-4 shadow-sm">
                   <HStack className="justify-between items-center">
                     <Box>
