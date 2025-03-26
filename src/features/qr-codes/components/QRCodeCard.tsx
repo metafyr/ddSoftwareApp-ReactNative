@@ -20,7 +20,7 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
     : "";
 
   return (
-    <Box className="bg-white p-4 border rounded-xl">
+    <Box className="bg-white p-4 border-[0.5px] rounded-xl">
       <HStack className="items-center justify-between space-x-1">
         <Box className="flex-1">
           <Text className="text-2xl font-bold">{name}</Text>

@@ -36,8 +36,7 @@ const bottomTabs = [
     label: "Schedules",
     value: "Schedules",
     icon: "calendar",
-    // Enable schedules since it's been migrated
-    disabled: false,
+    disabled: true,
   },
   {
     label: "Settings",
