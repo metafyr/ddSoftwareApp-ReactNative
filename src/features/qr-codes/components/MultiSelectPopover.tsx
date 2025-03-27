@@ -22,6 +22,7 @@ interface MultiSelectPopoverProps {
   selected: string[];
   onChange: (values: string[]) => void;
   placeholder?: string;
+  disabledValues?: string[];
 }
 
 export function MultiSelectPopover({
@@ -29,6 +30,7 @@ export function MultiSelectPopover({
   selected,
   onChange,
   placeholder = "Select items...",
+  disabledValues = [],
 }: MultiSelectPopoverProps) {
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -37,6 +39,11 @@ export function MultiSelectPopover({
   );
 
   const toggleOption = (value: string) => {
+    // Prevent toggling if the value is in disabledValues
+    if (disabledValues.includes(value)) {
+      return;
+    }
+    
     const newSelected = selected.includes(value)
       ? selected.filter((v) => v !== value)
       : [...selected, value];
@@ -61,15 +68,17 @@ export function MultiSelectPopover({
                   className="bg-primary-50 rounded-full px-2 py-1 flex-row items-center mr-1 mb-1"
                 >
                   <Text className="text-sm text-primary-900">{item.label}</Text>
-                  <Pressable
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      toggleOption(item.value);
-                    }}
-                    className="ml-1"
-                  >
-                    <Icon as={X} size="xs" color="#1E40AF" />
-                  </Pressable>
+                  {!disabledValues.includes(item.value) && (
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        toggleOption(item.value);
+                      }}
+                      className="ml-1"
+                    >
+                      <Icon as={X} size="xs" color="#1E40AF" />
+                    </Pressable>
+                  )}
                 </Box>
               ))
             ) : (
@@ -88,7 +97,7 @@ export function MultiSelectPopover({
               <Pressable
                 key={option.value}
                 onPress={() => toggleOption(option.value)}
-                className="flex-row items-center p-2 hover:bg-primary-50 rounded-md"
+                className={`flex-row items-center p-2 hover:bg-primary-50 rounded-md ${disabledValues.includes(option.value) ? 'opacity-70' : ''}`}
               >
                 <Box className="w-4 h-4 mr-2">
                   {selected.includes(option.value) && (

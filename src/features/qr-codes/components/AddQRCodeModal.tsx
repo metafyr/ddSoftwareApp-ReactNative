@@ -33,6 +33,7 @@ export const AddQRCodeModal = ({
   isLoading = false,
 }: AddQRCodeModalProps) => {
   const [newQRName, setNewQRName] = React.useState("");
+  // Files is always enabled by default and non-removable
   const [selectedFunctions, setSelectedFunctions] = React.useState<string[]>([
     "files",
   ]);
@@ -40,6 +41,12 @@ export const AddQRCodeModal = ({
   const handleFunctionChange = (values: any) => {
     // Ensure we're handling the values as an array
     const selectedValues = Array.isArray(values) ? values : [values];
+    
+    // Always include 'files' as it's non-removable
+    if (!selectedValues.includes('files')) {
+      selectedValues.push('files');
+    }
+    
     setSelectedFunctions(selectedValues);
   };
 
@@ -62,7 +69,7 @@ export const AddQRCodeModal = ({
   };
 
   const functionOptions = [
-    { value: "files", label: "Files" },
+    { value: "files", label: "Files (Default)" },
     { value: "schedules", label: "Schedules" },
   ];
 
@@ -92,8 +99,13 @@ export const AddQRCodeModal = ({
               <MultiSelectPopover
                 options={functionOptions}
                 selected={selectedFunctions}
-                onChange={setSelectedFunctions}
+                onChange={(values) => {
+                  // Ensure 'files' is always included
+                  const newValues = values.includes('files') ? values : [...values, 'files'];
+                  setSelectedFunctions(newValues);
+                }}
                 placeholder="Select functions"
+                disabledValues={['files']} // Make 'files' non-removable
               />
             </Box>
           </VStack>
