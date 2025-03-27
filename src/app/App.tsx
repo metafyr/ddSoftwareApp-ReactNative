@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Notifications from "expo-notifications";
 import { AppProviders } from "./providers";
 import { AppNavigator } from "./navigation";
+import { initializeApiConfig } from "@/config/apiConfig";
 
 // Initialize WebBrowser for auth session
 WebBrowser.maybeCompleteAuthSession();
@@ -22,34 +23,45 @@ Notifications.setNotificationHandler({
 });
 
 export default function App() {
+  // Initialize API config and permissions
   useEffect(() => {
-    async function getPermissions() {
-      const { status: existingStatus } =
-        await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== "granted") {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+    async function initialize() {
+      try {
+        // Initialize API configuration
+        await initializeApiConfig();
+      } catch (error) {
+        console.error("Error initializing API config:", error);
       }
-      if (finalStatus !== "granted") {
-        return;
-      } else {
-        // Set up notification response handler
-        const subscription =
-          Notifications.addNotificationResponseReceivedListener((response) => {
-            const url = response.notification.request.content.data?.url;
-            if (url) {
-              Linking.openURL(url);
-            }
-          });
 
-        return () => {
-          subscription.remove();
-        };
+      // Get notification permissions
+      try {
+        const { status: existingStatus } =
+          await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== "granted") {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        if (finalStatus === "granted") {
+          // Set up notification response handler
+          const subscription =
+            Notifications.addNotificationResponseReceivedListener((response) => {
+              const url = response.notification.request.content.data?.url;
+              if (url) {
+                Linking.openURL(url);
+              }
+            });
+
+          return () => {
+            subscription.remove();
+          };
+        }
+      } catch (error) {
+        console.error("Error initializing notifications:", error);
       }
     }
 
-    getPermissions();
+    initialize();
   }, []);
 
   return (

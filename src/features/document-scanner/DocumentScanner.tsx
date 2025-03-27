@@ -3,7 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system";
-import { useUploadFile } from "@features/qr-codes";
+import { useDirectS3UploadSimple } from "@features/qr-codes/api/useDirectS3UploadSimple";
 
 interface DocumentScannerProps {
   qrCodeId: string;
@@ -19,7 +19,7 @@ export const useDocumentScanner = ({
   refetch,
 }: DocumentScannerProps) => {
   const [isScanning, setIsScanning] = useState(false);
-  const { mutateAsync: uploadFile } = useUploadFile();
+  const directS3Upload = useDirectS3UploadSimple();
 
   const handleScan = async () => {
     try {
@@ -35,8 +35,8 @@ export const useDocumentScanner = ({
       // Launch camera with reduced quality
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.5, // Reduce quality to decrease file size
-        allowsEditing: false, // Disable editing to prevent potential URI issues
+        quality: 0.5,
+        allowsEditing: false,
         base64: false,
         exif: false,
       });
@@ -45,140 +45,71 @@ export const useDocumentScanner = ({
         const asset = result.assets[0];
         const fileUri = asset.uri;
 
-        // Add detailed logging about the URI
-        console.log("[DocumentScanner] Original captured image URI:", fileUri);
-        console.log("[DocumentScanner] Platform:", Platform.OS);
-
         try {
           // Check if the file exists
           const fileInfo = await FileSystem.getInfoAsync(fileUri);
-          console.log("[DocumentScanner] Original file info:", fileInfo);
-
           if (!fileInfo.exists) {
             throw new Error("File does not exist at the provided URI");
           }
 
           // Process the image using ImageManipulator for better compatibility
-          console.log("[DocumentScanner] Processing image...");
-
-          // Compress and resize the image to reduce file size
           const manipResult = await ImageManipulator.manipulateAsync(
             fileUri,
-            [{ resize: { width: 1200 } }], // Resize to 1200px width max
+            [{ resize: { width: 1200 } }],
             {
-              compress: 0.6, // Compression level
+              compress: 0.6,
               format: ImageManipulator.SaveFormat.JPEG,
             }
           );
 
-          console.log("[DocumentScanner] Image processed:", manipResult.uri);
-
           // Generate a unique filename based on timestamp
           const timestamp = new Date().getTime();
           const fileName = `scanned_${timestamp}.jpg`;
-          console.log("[DocumentScanner] Generated filename:", fileName);
 
-          // For Android specifically, check the file size after manipulation
-          if (Platform.OS === "android") {
-            const processedInfo = await FileSystem.getInfoAsync(
-              manipResult.uri
-            );
-            console.log(
-              "[DocumentScanner] Processed file info:",
-              processedInfo
-            );
+          // Get file info after processing
+          let processedFileUri = manipResult.uri;
+          let fileSize = 0;
 
-            if (processedInfo.exists && "size" in processedInfo) {
-              console.log(
-                "[DocumentScanner] Processed file size:",
-                processedInfo.size,
-                "bytes"
+          // Get the file size after manipulation
+          const processedInfo = await FileSystem.getInfoAsync(processedFileUri);
+
+          if (processedInfo.exists && "size" in processedInfo) {
+            fileSize = processedInfo.size;
+
+            // If still too large, compress more aggressively
+            if (fileSize > 1500000) {
+              const recompressResult = await ImageManipulator.manipulateAsync(
+                manipResult.uri,
+                [{ resize: { width: 800 } }],
+                {
+                  compress: 0.4,
+                  format: ImageManipulator.SaveFormat.JPEG,
+                }
               );
 
-              // If still too large, compress more aggressively
-              if (processedInfo.size > 1500000) {
-                // If larger than 1.5MB
-                console.log(
-                  "[DocumentScanner] File still large, compressing more..."
-                );
-                const recompressResult = await ImageManipulator.manipulateAsync(
-                  manipResult.uri,
-                  [{ resize: { width: 800 } }], // Smaller size
-                  {
-                    compress: 0.4, // Higher compression
-                    format: ImageManipulator.SaveFormat.JPEG,
-                  }
-                );
+              processedFileUri = recompressResult.uri;
+              const finalFileInfo = await FileSystem.getInfoAsync(
+                processedFileUri
+              );
 
-                console.log(
-                  "[DocumentScanner] Recompressed image:",
-                  recompressResult.uri
-                );
-
-                // Now use this more compressed image
-                const finalFileInfo = await FileSystem.getInfoAsync(
-                  recompressResult.uri
-                );
-                if (finalFileInfo.exists && "size" in finalFileInfo) {
-                  console.log(
-                    "[DocumentScanner] Final file size:",
-                    finalFileInfo.size,
-                    "bytes"
-                  );
-                }
-
-                // Upload the processed image
-                console.log("[DocumentScanner] Starting upload...");
-                await uploadFile({
-                  fileUri: recompressResult.uri,
-                  fileName,
-                  fileType: "image/jpeg",
-                  qrCodeId,
-                  folderId: undefined,
-                  isPublic: false,
-                  uploadType: "scanned",
-                });
-              } else {
-                // Use the first compressed image if size is acceptable
-                console.log(
-                  "[DocumentScanner] Starting upload with normal compression..."
-                );
-                await uploadFile({
-                  fileUri: manipResult.uri,
-                  fileName,
-                  fileType: "image/jpeg",
-                  qrCodeId,
-                  folderId: undefined,
-                  isPublic: false,
-                  uploadType: "scanned",
-                });
+              if (finalFileInfo.exists && "size" in finalFileInfo) {
+                fileSize = finalFileInfo.size;
               }
-            } else {
-              // Fallback to using the manipulated image directly
-              await uploadFile({
-                fileUri: manipResult.uri,
-                fileName,
-                fileType: "image/jpeg",
-                qrCodeId,
-                folderId: undefined,
-                isPublic: false,
-                uploadType: "scanned",
-              });
             }
-          } else {
-            // For iOS, use the manipulated image directly
-            await uploadFile({
-              fileUri: manipResult.uri,
-              fileName,
-              fileType: "image/jpeg",
-              qrCodeId,
-              folderId: undefined,
-              isPublic: false,
-              uploadType: "scanned",
-            });
           }
 
-          console.log("[DocumentScanner] Upload completed successfully");
+          // Use direct S3 upload for the scanned document
+          await directS3Upload.upload({
+            fileUri: processedFileUri,
+            fileName,
+            fileType: "image/jpeg",
+            fileSize,
+            qrCodeId,
+            folderId: undefined,
+            isPublic: false,
+            uploadType: "scanned",
+          });
+
           onSuccess("Document scanned and uploaded successfully");
 
           if (refetch) {
@@ -186,7 +117,6 @@ export const useDocumentScanner = ({
             await refetch();
           }
         } catch (error) {
-          console.error("[DocumentScanner] Processing/upload error:", error);
           onError(
             `Failed to process or upload document: ${
               error instanceof Error ? error.message : String(error)
@@ -197,14 +127,8 @@ export const useDocumentScanner = ({
         onError("No document was scanned");
       }
     } catch (error) {
-      // Enhanced error reporting
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.error("[DocumentScanner] Scan error:", error);
-      console.error(
-        "[DocumentScanner] Stack trace:",
-        error instanceof Error ? error.stack : "No stack trace"
-      );
       onError(`Failed to scan document: ${errorMessage}`);
     } finally {
       setIsScanning(false);

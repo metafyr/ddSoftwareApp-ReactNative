@@ -9,6 +9,13 @@ import {
   Alert,
   AlertIcon,
   AlertText,
+  Modal,
+  ModalBackdrop,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  Progress,
+  ProgressFilledTrack,
 } from "@/../components/ui";
 import {
   ArrowLeft,
@@ -22,9 +29,12 @@ import { RootStackParamList } from "@shared/types";
 import { useQRCodeDetails, useUploadFile } from "../api";
 import { QRCodeCard, DocumentsSection, ExpandableFAB } from "../components";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
 import { ScheduleForm } from "@/features/schedules";
 import { LoadingScreen, ErrorScreen } from "@/shared/ui";
 import { useDocumentScanner } from "@/features/document-scanner";
+import { compressImageIfNeeded } from "@shared/utils/fileCompression";
+import { useDirectS3UploadSimple } from "../api/useDirectS3UploadSimple";
 
 type QRCodeDetailsRouteProp = RouteProp<RootStackParamList, "QRCodeDetails">;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -40,6 +50,7 @@ const QRCodeDetailsScreen = () => {
     type: "success" | "error";
   }>({ show: false, message: "", type: "success" });
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Use the QR code details hook
   const {
@@ -49,6 +60,7 @@ const QRCodeDetailsScreen = () => {
     refetch,
   } = useQRCodeDetails(qrId, { isPhysicalId });
   const { mutateAsync: uploadFile } = useUploadFile();
+  const directS3Upload = useDirectS3UploadSimple();
 
   const handleBack = () => {
     navigation.goBack();
@@ -95,6 +107,7 @@ const QRCodeDetailsScreen = () => {
   const handleUpload = async () => {
     try {
       setIsUploading(true);
+      setUploadProgress(0);
       const result = await DocumentPicker.getDocumentAsync({
         type: ["application/pdf", "image/*"],
         multiple: true,
@@ -104,12 +117,11 @@ const QRCodeDetailsScreen = () => {
         return;
       }
 
-      // Handle successful file selection
       const files = result.assets;
+      const totalFiles = files.length;
+      let completedFiles = 0;
 
-      // Upload each file
       const uploadPromises = files.map(async (file) => {
-        // Ensure we have a valid mime type
         const mimeType =
           file.mimeType ||
           (file.name.endsWith(".pdf")
@@ -117,43 +129,56 @@ const QRCodeDetailsScreen = () => {
             : file.name.match(/\.(jpe?g|png|gif|bmp)$/i)
             ? "image/jpeg"
             : "application/octet-stream");
-        return uploadFile({
-          fileUri: file.uri,
-          fileName: file.name,
-          fileType: mimeType,
-          qrCodeId: qrId,
-          folderId: undefined,
-          isPublic: false,
-          uploadType: "uploaded",
-        });
+
+        let fileUri = file.uri;
+        let fileSize = file.size || 0;
+
+        if (mimeType.startsWith("image/")) {
+          const compressed = await compressImageIfNeeded(file.uri, mimeType);
+          fileUri = compressed.uri;
+          fileSize = compressed.size;
+        } else if (!fileSize) {
+          const fileInfo = await FileSystem.getInfoAsync(file.uri);
+          fileSize = "size" in fileInfo ? fileInfo.size : 0;
+        }
+
+        return directS3Upload
+          .upload({
+            fileUri,
+            fileName: file.name,
+            fileType: mimeType,
+            fileSize,
+            qrCodeId: qrId,
+            folderId: undefined,
+            isPublic: false,
+            uploadType: "uploaded",
+          })
+          .finally(() => {
+            completedFiles++;
+            setUploadProgress((completedFiles / totalFiles) * 100);
+          });
       });
 
       try {
         await Promise.all(uploadPromises);
         handleDownloadStatus(true, "Files uploaded successfully");
       } catch (uploadError: any) {
-        console.error("Error during file upload:", uploadError);
         handleDownloadStatus(
           false,
           `Upload failed: ${uploadError?.message || "Unknown error"}`
         );
       }
 
-      // Add a small delay before refetching to ensure backend processing is complete
       await new Promise((resolve) => setTimeout(resolve, 1000));
       await refetch();
     } catch (error: any) {
-      console.error(
-        "Error picking or uploading document:",
-        error?.message,
-        error?.stack
-      );
       handleDownloadStatus(
         false,
         `Error: ${error?.message || "Failed to upload files"}`
       );
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -245,6 +270,31 @@ const QRCodeDetailsScreen = () => {
               </Alert>
             </Box>
           )}
+
+          {/* Upload Progress Modal */}
+          <Modal
+            isOpen={isUploading}
+            onClose={() => {}}
+            closeOnOverlayClick={false}
+          >
+            <ModalBackdrop />
+            <ModalContent>
+              <ModalHeader>
+                <Text>Uploading Files</Text>
+              </ModalHeader>
+              <ModalBody>
+                <VStack space="md">
+                  <Text>Please wait while files are being uploaded...</Text>
+                  <Progress value={uploadProgress} size="lg">
+                    <ProgressFilledTrack />
+                  </Progress>
+                  <Text className="text-center">
+                    {Math.round(uploadProgress)}%
+                  </Text>
+                </VStack>
+              </ModalBody>
+            </ModalContent>
+          </Modal>
         </>
       )}
     </Box>

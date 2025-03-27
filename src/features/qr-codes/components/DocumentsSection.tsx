@@ -8,12 +8,24 @@ import {
   Alert,
   AlertIcon,
   AlertText,
+  Progress,
+  ProgressFilledTrack,
+  Modal,
+  ModalBackdrop,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  ButtonText,
+  VStack,
 } from "@/../components/ui";
 import {
   InfoIcon,
   CheckCircleIcon,
   AlertCircleIcon,
   DownloadIcon,
+  FileIcon,
 } from "lucide-react-native";
 import { File } from "@shared/types";
 import * as FileSystem from "expo-file-system";
@@ -35,7 +47,38 @@ export const DocumentsSection = ({
   onFilePress,
   onDownloadStatus,
 }: DocumentsSectionProps) => {
-  // Check for notification permissions
+  const [downloadProgress, setDownloadProgress] = useState<{
+    filename: string;
+    progress: number;
+    visible: boolean;
+  }>({
+    filename: "",
+    progress: 0,
+    visible: false,
+  });
+
+  const showDownloadProgress = (filename: string) => {
+    setDownloadProgress({
+      filename,
+      progress: 0,
+      visible: true,
+    });
+  };
+
+  const hideDownloadProgress = () => {
+    setDownloadProgress((prev) => ({
+      ...prev,
+      visible: false,
+    }));
+  };
+
+  const updateProgress = (progress: number) => {
+    setDownloadProgress((prev) => ({
+      ...prev,
+      progress,
+    }));
+  };
+
   const checkNotificationPermissions = async () => {
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== "granted") {
@@ -46,7 +89,6 @@ export const DocumentsSection = ({
     return true;
   };
 
-  // Send notification with downloaded file info
   const sendNotification = async (filename: string, fileUri: string) => {
     const hasPermission = await checkNotificationPermissions();
 
@@ -60,29 +102,20 @@ export const DocumentsSection = ({
         },
         trigger: null,
       });
-      console.log("Notification scheduled for file:", filename);
-    } else {
-      console.log("Notification permission not granted");
     }
   };
 
-  // Function to open a file
   const openFile = async (fileUri: string, mimeType?: string) => {
     try {
-      // First verify the file exists
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (!fileInfo.exists) {
         throw new Error("File not found");
       }
 
-      // For Android, we need to handle file opening differently
       if (Platform.OS === "android") {
         try {
-          // Get the content URI
           const contentUri = await FileSystem.getContentUriAsync(fileUri);
-          console.log("Content URI:", contentUri);
 
-          // Determine the correct MIME type if not provided
           let finalMimeType = mimeType;
           if (!finalMimeType) {
             const extension = fileUri.split(".").pop()?.toLowerCase();
@@ -102,72 +135,58 @@ export const DocumentsSection = ({
             }
           }
 
-          // Create a temporary file in the cache directory
           const tempFileName = `temp_${Date.now()}_${fileUri.split("/").pop()}`;
           const tempFileUri = `${FileSystem.cacheDirectory}${tempFileName}`;
 
-          // Copy the file to the cache directory
           await FileSystem.copyAsync({
             from: fileUri,
             to: tempFileUri,
           });
 
-          // Share the temporary file
           await Sharing.shareAsync(tempFileUri, {
             mimeType: finalMimeType,
             dialogTitle: "Open File",
           });
-
-          // Clean up the temporary file after a delay
-          setTimeout(async () => {
-            try {
-              await FileSystem.deleteAsync(tempFileUri);
-            } catch (error) {
-              console.error("Error cleaning up temp file:", error);
-            }
-          }, 1000);
-
-          return;
         } catch (error) {
-          console.error("Error opening file with content URI:", error);
+          throw new Error(
+            `Failed to open file: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          );
         }
-      }
-
-      // For iOS or if Android content URI fails, try direct file URI
-      const supported = await Linking.canOpenURL(fileUri);
-      if (supported) {
-        await Linking.openURL(fileUri);
       } else {
-        throw new Error("Cannot open this file type");
+        await Sharing.shareAsync(fileUri, {
+          mimeType: mimeType,
+          dialogTitle: "Open File",
+        });
       }
     } catch (error) {
-      console.error("Error opening file:", error);
-      throw error;
+      throw new Error(
+        `Failed to open file: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
   };
 
   const handleFileDownload = async (file: File) => {
     try {
       const filename = file.name;
-      // Use document directory for persistent storage
       const directory = FileSystem.documentDirectory;
       const fileUri = `${directory}${filename}`;
 
-      // Show downloading status
       onDownloadStatus(true, `Downloading ${filename}...`);
+      showDownloadProgress(filename);
 
-      // Check if file already exists
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (fileInfo.exists) {
-        console.log("File already exists, opening...");
+        hideDownloadProgress();
         await openFile(fileUri, file.mimeType);
         return;
       }
 
-      // Create download options with Android notification configuration
       const downloadOptions = {
         headers: {},
-        // Add Android download notification configuration
         android: {
           notification: {
             enabled: true,
@@ -187,29 +206,20 @@ export const DocumentsSection = ({
           const progress =
             downloadProgress.totalBytesWritten /
             downloadProgress.totalBytesExpectedToWrite;
-          console.log(`Download progress: ${Math.round(progress * 100)}%`);
+          updateProgress(progress);
         }
       );
 
       const result = await downloadResumable.downloadAsync();
 
       if (result?.uri) {
-        // Make sure file is accessible
         const downloadedFileInfo = await FileSystem.getInfoAsync(result.uri);
-        console.log("Downloaded file info:", downloadedFileInfo);
 
         if (downloadedFileInfo.exists) {
-          // Send notification with file info
           await sendNotification(filename, result.uri);
-
-          console.log("File downloaded successfully:", result.uri);
-
-          // Wait a short moment to ensure file is fully written
           await new Promise((resolve) => setTimeout(resolve, 500));
-
-          // Open the file after successful download
+          hideDownloadProgress();
           await openFile(result.uri, file.mimeType);
-
           onDownloadStatus(true, `File downloaded successfully: ${filename}`);
           onFilePress?.(file);
         } else {
@@ -219,8 +229,24 @@ export const DocumentsSection = ({
         throw new Error("Download completed but no URI returned");
       }
     } catch (error) {
-      console.error("Download error:", error);
+      hideDownloadProgress();
       onDownloadStatus(false, "Failed to download file. Please try again.");
+    }
+  };
+
+  const getFileIcon = (file: File) => {
+    const mimeType = file.mimeType?.toLowerCase() || "";
+
+    if (mimeType.includes("pdf")) {
+      return <FileIcon size={20} color="#FF5252" />;
+    } else if (mimeType.includes("image")) {
+      return <FileIcon size={20} color="#4CAF50" />;
+    } else if (mimeType.includes("word") || mimeType.includes("document")) {
+      return <FileIcon size={20} color="#2196F3" />;
+    } else if (mimeType.includes("excel") || mimeType.includes("sheet")) {
+      return <FileIcon size={20} color="#4CAF50" />;
+    } else {
+      return <FileIcon size={20} color="#757575" />;
     }
   };
 
@@ -230,31 +256,77 @@ export const DocumentsSection = ({
         <Text className="text-lg font-semibold">{title}</Text>
         <Box className="h-0.5 bg-primary-500 w-1/3 mt-1" />
       </Box>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <HStack space="sm" className="pb-2">
-          {[...files]
-            .sort(
-              (a, b) =>
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime()
-            )
-            .map((file) => (
-              <Pressable key={file.id} onPress={() => handleFileDownload(file)}>
-                <Box className="bg-background-50 p-3 rounded-lg w-32">
-                  <Text className="font-medium" numberOfLines={1}>
-                    {file.name}
-                  </Text>
-                  <Box className="flex-row justify-between items-center">
-                    <Text className="text-sm text-gray-500">
-                      {new Date(file.createdAt).toLocaleDateString()}
-                    </Text>
-                    <DownloadIcon size={16} color="#6B7280" />
+
+      {files.length === 0 ? (
+        <Box className="py-4 items-center">
+          <Text className="text-gray-500">No documents found</Text>
+        </Box>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <HStack space="sm" className="pb-2">
+            {[...files]
+              .sort(
+                (a, b) =>
+                  new Date(b.createdAt).getTime() -
+                  new Date(a.createdAt).getTime()
+              )
+              .map((file) => (
+                <Pressable
+                  key={file.id}
+                  onPress={() => handleFileDownload(file)}
+                >
+                  <Box className="bg-background-50 p-3 rounded-lg w-32">
+                    <HStack space="xs" className="mb-1">
+                      {getFileIcon(file)}
+                      <Text className="font-medium flex-1" numberOfLines={1}>
+                        {file.name}
+                      </Text>
+                    </HStack>
+                    <Box className="flex-row justify-between items-center">
+                      <Text className="text-xs text-gray-500">
+                        {new Date(file.createdAt).toLocaleDateString()}
+                      </Text>
+                      <DownloadIcon size={16} color="#6B7280" />
+                    </Box>
                   </Box>
-                </Box>
-              </Pressable>
-            ))}
-        </HStack>
-      </ScrollView>
+                </Pressable>
+              ))}
+          </HStack>
+        </ScrollView>
+      )}
+
+      <Modal
+        isOpen={downloadProgress.visible}
+        onClose={hideDownloadProgress}
+        closeOnOverlayClick={false}
+      >
+        <ModalBackdrop />
+        <ModalContent>
+          <ModalHeader>
+            <Text>Downloading File</Text>
+          </ModalHeader>
+          <ModalBody>
+            <VStack space="md">
+              <Text>{downloadProgress.filename}</Text>
+              <Progress value={downloadProgress.progress * 100} size="lg">
+                <ProgressFilledTrack />
+              </Progress>
+              <Text className="text-center">
+                {Math.round(downloadProgress.progress * 100)}%
+              </Text>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              variant="outline"
+              action="secondary"
+              onPress={hideDownloadProgress}
+            >
+              <ButtonText>Cancel</ButtonText>
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };

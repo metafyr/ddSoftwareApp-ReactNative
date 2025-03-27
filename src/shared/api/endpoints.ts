@@ -19,6 +19,8 @@ export const API_ENDPOINTS = {
   FILES_BY_FOLDER: (folderId: string) => `/api/v1/file?folderId=${folderId}`,
   FILES_BY_QR_CODE: (qrCodeId: string) => `/api/v1/file?qrCodeId=${qrCodeId}`,
   FILE_UPLOAD: "/api/v1/file/upload",
+  PRESIGNED_UPLOAD: "/api/v1/file/presigned-upload",
+  COMPLETE_UPLOAD: (fileId: string) => `/api/v1/file/${fileId}/complete-upload`,
 
   // Schedule endpoints
   SCHEDULES: "/api/v1/schedule",
