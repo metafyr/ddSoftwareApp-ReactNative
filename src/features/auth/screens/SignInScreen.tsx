@@ -1,5 +1,12 @@
 import React from "react";
-import { Box, Button, Text, Heading, VStack, Image } from "../../../../components/ui";
+import {
+  Box,
+  Button,
+  Text,
+  Heading,
+  VStack,
+  Image,
+} from "../../../../components/ui";
 import { Link, LinkText } from "../../../../components/ui/link";
 import { useSignIn } from "../api/useAuth";
 import { NavigationProp } from "@react-navigation/native";
@@ -56,8 +63,11 @@ const SignInScreen: React.FC<SignInScreenProps> = ({ navigation }) => {
 
       {/* Register link with spacer to push to bottom */}
       <Box className="w-full items-center pb-6">
-        <Link href="https://ddsoftware.com" className="text-gray-400 text-sm">
-          <LinkText>Visit ddsoftware.com to register</LinkText>
+        <Link
+          href="https://ddsoftware.com.sg"
+          className="text-gray-400 text-sm"
+        >
+          <LinkText>Visit ddsoftware.com.sg to register</LinkText>
         </Link>
       </Box>
     </Box>

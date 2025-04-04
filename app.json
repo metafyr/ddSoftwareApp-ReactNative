@@ -74,7 +74,8 @@
         "READ_EXTERNAL_STORAGE",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "SCHEDULE_EXACT_ALARM"
+        "MEDIA_LIBRARY",
+        "NOTIFICATIONS"
       ]
     },
     "web": {

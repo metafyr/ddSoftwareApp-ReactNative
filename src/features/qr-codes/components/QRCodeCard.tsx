@@ -20,11 +20,11 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
     : "";
 
   return (
-    <Box className="bg-white p-4 border-[0.5px] rounded-xl">
+    <Box className="bg-white p-3 border-[0.5px] rounded-xl">
       <HStack className="items-center justify-between space-x-1">
         <Box className="flex-1">
-          <Text className="text-2xl font-bold">{name}</Text>
-          <Text className="text-sm text-gray-500 pt-5">
+          <Text className="text-lg font-semibold">{name}</Text>
+          <Text className="text-xs text-gray-500 pt-2">
             Created at: {formattedDate}
           </Text>
         </Box>
@@ -32,7 +32,7 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
           onPress={() => (linkedPhysicalQR ? setModalVisible(true) : null)}
         >
           <Box className="p-1 border border-secondary-100">
-            <QRCodeIcon value={linkedPhysicalQR} size={80} />
+            <QRCodeIcon value={linkedPhysicalQR} size={60} />
           </Box>
         </Pressable>
 

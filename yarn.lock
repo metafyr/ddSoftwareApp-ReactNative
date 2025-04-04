@@ -5257,6 +5257,11 @@ expo-image-picker@~16.0.6:
   dependencies:
     expo-image-loader "~5.0.0"
 
+expo-intent-launcher@~12.0.2:
+  version "12.0.2"
+  resolved "https://registry.yarnpkg.com/expo-intent-launcher/-/expo-intent-launcher-12.0.2.tgz#cb576785a6eac3ef3cb6d4a14231aa52b76b2903"
+  integrity sha512-9JYyuuONE9AxoZgRyztcgfAaIIGvrUQAbFnYOPZcrHSBWhbF1203S3ho1Hk67jWhC72Um8+pJ+rXBxAp3ZZlxA==
+
 expo-json-utils@~0.14.0:
   version "0.14.0"
   resolved "https://registry.npmjs.org/expo-json-utils/-/expo-json-utils-0.14.0.tgz"
@@ -5267,7 +5272,7 @@ expo-keep-awake@~14.0.3:
   resolved "https://registry.npmjs.org/expo-keep-awake/-/expo-keep-awake-14.0.3.tgz"
   integrity sha512-6Jh94G6NvTZfuLnm2vwIpKe3GdOiVBuISl7FI8GqN0/9UOg9E0WXXp5cDcfAG8bn80RfgLJS8P7EPUGTZyOvhg==
 
-expo-linking@^7.0.5, expo-linking@~7.0.5:
+expo-linking@~7.0.5:
   version "7.0.5"
   resolved "https://registry.npmjs.org/expo-linking/-/expo-linking-7.0.5.tgz"
   integrity sha512-3KptlJtcYDPWohk0MfJU75MJFh2ybavbtcSd84zEPfw9s1q3hjimw3sXnH03ZxP54kiEWldvKmmnGcVffBDB1g==
