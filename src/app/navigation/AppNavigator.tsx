@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useIsAuthenticated } from "@features/auth/api";
@@ -18,7 +18,18 @@ const AppNavigator = () => {
     refetch,
   } = useIsAuthenticated();
 
-  if (isLoading) {
+  const [splashVisible, setSplashVisible] = useState(true);
+
+  // Hide splash screen after a short delay to allow auth check to complete
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSplashVisible(false);
+    }, 1500); // 1.5 seconds delay
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (splashVisible || isLoading) {
     return <LoadingScreen message="Checking authentication status..." />;
   }
 

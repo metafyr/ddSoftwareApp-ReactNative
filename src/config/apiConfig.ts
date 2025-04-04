@@ -84,7 +84,7 @@ export const initializeApiConfig = async (): Promise<void> => {
   try {
     // Try to get cached URL first
     const cachedUrl = await AsyncStorage.getItem(BACKEND_URL_KEY);
-    
+
     if (cachedUrl) {
       // Verify the cached URL still works
       const isConnected = await testUrlConnectivity(cachedUrl);
@@ -94,12 +94,12 @@ export const initializeApiConfig = async (): Promise<void> => {
         return;
       }
     }
-    
+
     // Try to find a working URL
     const workingUrl = await findWorkingBackendUrl();
     if (workingUrl) {
       API_CONFIG.BASE_URL = workingUrl;
-      
+
       // Cache the working URL for future use
       await AsyncStorage.setItem(BACKEND_URL_KEY, workingUrl);
     }
@@ -126,10 +126,10 @@ export const setBackendUrl = async (url: string): Promise<void> => {
  */
 export const getApiUrl = (endpoint: string): string => {
   // Ensure endpoint starts with /
-  const normalizedEndpoint = endpoint.startsWith("/") 
-    ? endpoint 
+  const normalizedEndpoint = endpoint.startsWith("/")
+    ? endpoint
     : `/${endpoint}`;
-    
+
   return `${API_CONFIG.BASE_URL}${normalizedEndpoint}`;
 };
 
