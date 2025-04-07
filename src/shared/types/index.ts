@@ -142,6 +142,7 @@ export interface PaginatedResponse<T> {
 export type RootStackParamList = {
   MainDashboard: undefined;
   SignIn: undefined;
+  UserNotFound: undefined;
   QRCodeDetails: { qrId: string; isPhysicalId?: boolean };
   QRScanPage: { qrId: string };
   ScheduleDetails: { scheduleId: string };

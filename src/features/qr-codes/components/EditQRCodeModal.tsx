@@ -59,8 +59,7 @@ export const EditQRCodeModal = ({
     if (qrCode) {
       setQRName(qrCode.name);
       setUuid(qrCode.uuid || "");
-      const functions = [];
-      if (qrCode.enabledFunctions.files) functions.push("files");
+      const functions = ["files"]; // Always include files
       if (qrCode.enabledFunctions.schedules) functions.push("schedules");
       setSelectedFunctions(functions);
     }
@@ -69,6 +68,12 @@ export const EditQRCodeModal = ({
   const handleFunctionChange = (values: any) => {
     // Ensure we're handling the values as an array
     const selectedValues = Array.isArray(values) ? values : [values];
+    
+    // Always include 'files' as it's non-removable
+    if (!selectedValues.includes('files')) {
+      selectedValues.push('files');
+    }
+    
     setSelectedFunctions(selectedValues);
   };
 
@@ -127,7 +132,7 @@ export const EditQRCodeModal = ({
   };
 
   const functionOptions = [
-    { value: "files", label: "Files" },
+    { value: "files", label: "Files (Default)" },
     { value: "schedules", label: "Schedules" },
   ];
 
@@ -179,8 +184,13 @@ export const EditQRCodeModal = ({
                 <MultiSelectPopover
                   options={functionOptions}
                   selected={selectedFunctions}
-                  onChange={setSelectedFunctions}
+                  onChange={(values) => {
+                    // Ensure 'files' is always included
+                    const newValues = values.includes('files') ? values : [...values, 'files'];
+                    setSelectedFunctions(newValues);
+                  }}
                   placeholder="Select functions"
+                  disabledValues={['files']} // Make 'files' non-removable
                 />
               </Box>
             </VStack>

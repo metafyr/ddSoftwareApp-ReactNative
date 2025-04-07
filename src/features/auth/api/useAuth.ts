@@ -13,6 +13,7 @@ import { API_ENDPOINTS } from "@shared/api/endpoints";
 import { User } from "@shared/types";
 import { getAuthConfig } from "../config/authConfig";
 import * as SecureStore from "expo-secure-store";
+import { useNavigation } from "@react-navigation/native";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -75,16 +76,16 @@ const isTokenExpired = (tokens: AuthTokens): boolean => {
   if (!tokens.expiresIn || !tokens.issuedAt) {
     return true; // If we don't have expiration info, assume expired
   }
-  
+
   // Get current time
   const now = Date.now();
-  
+
   // Calculate expiration time (convert expiresIn from seconds to milliseconds)
-  const expirationTime = tokens.issuedAt + (tokens.expiresIn * 1000);
-  
+  const expirationTime = tokens.issuedAt + tokens.expiresIn * 1000;
+
   // Consider token expired if it's within 5 minutes of expiration
   const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
-  
+
   return now > expirationTime - bufferTime;
 };
 
@@ -97,11 +98,45 @@ const extractEmailFromToken = (token: string): string | null => {
   try {
     // JWT tokens are in the format: header.payload.signature
     const parts = token.split(".");
-    if (parts.length !== 3) return null;
+    if (parts.length !== 3) {
+      console.error("[extractEmailFromToken] Invalid token format");
+      return null;
+    }
 
     // Decode the payload (middle part)
-    const payload = JSON.parse(atob(parts[1]));
-    return payload.email || null;
+    const base64Url = parts[1];
+    // Handle any base64url encoding
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Safer way to decode base64 in React Native
+    let payload;
+    try {
+      // Simple approach first
+      const rawPayload = atob(base64);
+      payload = JSON.parse(rawPayload);
+    } catch (e) {
+      console.warn('[extractEmailFromToken] Simple decode failed, trying alternative method');
+      try {
+        // Alternative approach if the simple one fails
+        const rawData = atob(base64);
+        const strData = Array.from(rawData)
+          .map(char => char.charCodeAt(0))
+          .map(byte => String.fromCharCode(byte))
+          .join('');
+        payload = JSON.parse(strData);
+      } catch (innerError) {
+        console.error('[extractEmailFromToken] Alternative decode failed:', innerError);
+        throw innerError;
+      }
+    }
+    
+    console.log('[extractEmailFromToken] Token payload keys:', Object.keys(payload));
+    
+    // Try various common claims for email
+    const email = payload.email || payload.mail || payload['cognito:email'] || null;
+    console.log('[extractEmailFromToken] Extracted email:', email);
+    
+    return email;
   } catch (error) {
     console.error(
       "[extractEmailFromToken] Error extracting email from token:",
@@ -115,9 +150,12 @@ export const useAuth = () => {
   const [authTokens, setAuthTokens] =
     useState<typeof authTokensStore>(authTokensStore);
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
-  const email = authTokens?.idToken
-    ? extractEmailFromToken(authTokens.idToken)
-    : null;
+  const navigation = useNavigation();
+  
+  // Try to extract email from both token types, but prefer access token
+  const email = authTokens?.accessToken
+    ? extractEmailFromToken(authTokens.accessToken) || (authTokens?.idToken ? extractEmailFromToken(authTokens.idToken) : null)
+    : (authTokens?.idToken ? extractEmailFromToken(authTokens.idToken) : null);
   const queryClient = useQueryClient();
   const config = useMemo(() => getAuthConfig(), []);
   const discoveryDocument = useMemo(() => config.discoveryDocument, [config]);
@@ -128,14 +166,14 @@ export const useAuth = () => {
       try {
         setIsLoadingTokens(true);
         const storedTokens = await loadAuthTokens();
-        
+
         if (storedTokens) {
           console.log("Found stored auth tokens");
-          
+
           // Check if token needs refresh
           if (storedTokens.refreshToken && isTokenExpired(storedTokens)) {
             console.log("Token expired, attempting to refresh");
-            
+
             try {
               const refreshResult = await refreshAsync(
                 {
@@ -144,10 +182,10 @@ export const useAuth = () => {
                 },
                 discoveryDocument
               );
-              
+
               // Add issuedAt timestamp
               refreshResult.issuedAt = Date.now();
-              
+
               // Update tokens
               authTokensStore = refreshResult;
               await saveAuthTokens(refreshResult);
@@ -165,7 +203,7 @@ export const useAuth = () => {
             authTokensStore = storedTokens;
             setAuthTokens(storedTokens);
           }
-          
+
           // Invalidate queries to trigger refetch with new token
           queryClient.invalidateQueries({ queryKey: ["currentUser"] });
           queryClient.invalidateQueries({ queryKey: ["isAuthenticated"] });
@@ -176,25 +214,70 @@ export const useAuth = () => {
         setIsLoadingTokens(false);
       }
     };
-    
+
     initializeTokens();
   }, [config.clientId, discoveryDocument, queryClient]);
+
+  // Add debugging logs for authentication state
+  useEffect(() => {
+    if (!isLoadingTokens) {
+      console.log('Auth state:', {
+        hasAccessToken: !!authTokens?.accessToken,
+        accessTokenLength: authTokens?.accessToken ? authTokens.accessToken.length : 0,
+        hasIdToken: !!authTokens?.idToken,
+        tokenTypes: authTokens ? Object.keys(authTokens).filter(key => 
+          ['accessToken', 'idToken', 'refreshToken'].includes(key) && !!authTokens[key as keyof AuthTokens]
+        ) : [],
+        email,
+        tokensLoaded: !isLoadingTokens
+      });
+      
+      if (authTokens?.accessToken) {
+        console.log('AccessToken prefix:', authTokens.accessToken.substring(0, 20) + '...');
+      }
+    }
+  }, [isLoadingTokens, authTokens, email]);
 
   return useQuery({
     queryKey: ["currentUser"],
     queryFn: async () => {
-      if (!authTokens?.idToken || !email) {
+      if (!authTokens?.accessToken || !email) {
+        console.log('Skipping API call - missing token or email:', { 
+          hasAccessToken: !!authTokens?.accessToken,
+          email 
+        });
         return null;
       }
 
-      apiClient.setAuthToken(authTokens.idToken);
-      const user = await apiClient.request<User>(
-        API_ENDPOINTS.USER_BY_EMAIL(email)
-      );
-
-      return user;
+      console.log('Setting access token for API request, token length:', authTokens.accessToken.length);
+      apiClient.setAuthToken(authTokens.accessToken);
+      
+      console.log('Making API request to:', API_ENDPOINTS.USER_BY_EMAIL(email));
+      try {
+        const user = await apiClient.request<User>(
+          API_ENDPOINTS.USER_BY_EMAIL(email)
+        );
+        console.log('API request successful, received user data');
+        return user;
+      } catch (error) {
+        console.error('API request failed:', error);
+        
+        // Check if the error is a 401 (Unauthorized) or 404 (Not Found)
+        if (error && typeof error === 'object' && 'status' in error) {
+          const apiError = error as { status: number };
+          if (apiError.status === 401 || apiError.status === 404) {
+            // Navigate to the UserNotFound screen
+            console.log('User not found in system, redirecting to UserNotFound screen');
+            setTimeout(() => {
+              navigation.navigate('UserNotFound' as never);
+            }, 300);
+          }
+        }
+        
+        throw error;
+      }
     },
-    enabled: !isLoadingTokens && !!authTokens?.idToken && !!email,
+    enabled: !isLoadingTokens && !!authTokens?.accessToken && !!email,
   });
 };
 
@@ -238,7 +321,7 @@ export const useSignIn = () => {
         // Invalidate queries
         queryClient.invalidateQueries({ queryKey: ["currentUser"] });
         queryClient.invalidateQueries({ queryKey: ["isAuthenticated"] });
-        
+
         console.log("Authentication successful, tokens stored securely");
       } catch (error) {
         console.error("Error exchanging code for token:", error);
@@ -314,14 +397,14 @@ export const useSignOut = () => {
 
         // Clear tokens from memory
         authTokensStore = null;
-        
+
         // Clear tokens from secure storage
         await saveAuthTokens(null);
-        
+
         // Update state
         setAuthTokens(null);
         apiClient.setAuthToken(null);
-        
+
         console.log("Sign out successful, tokens cleared");
         return true;
       } catch (error) {
@@ -339,31 +422,46 @@ export const useSignOut = () => {
 
 export const useIsAuthenticated = () => {
   const [isChecking, setIsChecking] = useState(true);
-  
+
   return useQuery({
     queryKey: ["isAuthenticated"],
     queryFn: async () => {
       setIsChecking(true);
-      
+
       // First check memory
-      if (authTokensStore?.idToken) {
+      if (authTokensStore?.accessToken) {
+        console.log('Auth in memory: access token found');
         setIsChecking(false);
         return true;
       }
-      
+
       // If not in memory, try to load from storage
       try {
+        console.log('Checking stored tokens');
         const storedTokens = await loadAuthTokens();
-        if (storedTokens?.idToken) {
-          // Update memory store
-          authTokensStore = storedTokens;
-          setIsChecking(false);
-          return true;
+        if (storedTokens) {
+          console.log('Found stored tokens with:', 
+            Object.keys(storedTokens).filter(key => 
+              ['accessToken', 'idToken', 'refreshToken'].includes(key) && !!storedTokens[key as keyof AuthTokens]
+            )
+          );
+          
+          if (storedTokens.accessToken) {
+            // Update memory store
+            console.log('Valid access token found in storage');
+            authTokensStore = storedTokens;
+            setIsChecking(false);
+            return true;
+          } else {
+            console.log('No access token found in stored tokens');
+          }
+        } else {
+          console.log('No stored tokens found');
         }
       } catch (error) {
         console.error("Error checking authentication status:", error);
       }
-      
+
       setIsChecking(false);
       return false;
     },

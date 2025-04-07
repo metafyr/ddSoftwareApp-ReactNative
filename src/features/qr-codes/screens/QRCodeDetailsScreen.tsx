@@ -37,7 +37,7 @@ import { File, QRCodeDetailsType, Folder } from "@shared/types";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@shared/types";
-import { useQRCodeDetails, useUploadFile } from "../api";
+import { useQRCodeDetails, useUploadFile, useUpdateQRCode } from "../api";
 import { QRCodeCard, ExpandableFAB } from "../components";
 import { useDeleteFile } from "../api";
 import * as DocumentPicker from "expo-document-picker";
@@ -61,6 +61,7 @@ const QRCodeDetailsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<QRCodeDetailsRouteProp>();
   const { qrId, isPhysicalId = false } = route.params;
+  const { mutateAsync: updateQRCode } = useUpdateQRCode();
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [showAlert, setShowAlert] = useState<{
     show: boolean;
@@ -76,6 +77,8 @@ const QRCodeDetailsScreen = () => {
     "uploaded"
   );
   const [searchQuery, setSearchQuery] = useState("");
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showFileDetail, setShowFileDetail] = useState(false);
   const [hasMediaPermission, setHasMediaPermission] = useState(false);
@@ -129,7 +132,7 @@ const QRCodeDetailsScreen = () => {
         setHasMediaPermission(status === "granted");
       }
     })();
-    
+
     // Clean up the download manager when component unmounts
     return () => {
       downloadManager.cleanup();
@@ -137,6 +140,7 @@ const QRCodeDetailsScreen = () => {
   }, []);
 
   const handleBack = () => {
+    setIsSearchFocused(false);
     navigation.goBack();
   };
 
@@ -210,7 +214,10 @@ const QRCodeDetailsScreen = () => {
       handleDownloadStatus(true, `${file.name} deleted successfully`);
       await refetch();
     } catch (error: any) {
-      handleDownloadStatus(false, `Error deleting file: ${error?.message || 'Unknown error'}`);
+      handleDownloadStatus(
+        false,
+        `Error deleting file: ${error?.message || "Unknown error"}`
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -401,19 +408,48 @@ const QRCodeDetailsScreen = () => {
 
           <FlatList
             data={[1]} // Dummy data to render once
+            onScroll={(event) => {
+              const scrollY = event.nativeEvent.contentOffset.y;
+              setIsScrolled(scrollY > 20); // Apply compact mode after scrolling down 20 pixels
+            }}
+            scrollEventThrottle={16} // Optimize scroll performance
             renderItem={() => (
               <VStack space="md" className="p-4">
                 <QRCodeCard
                   name={qrCode.name}
                   linkedPhysicalQR={qrCode.uuid}
                   createdAt={qrCode.createdAt}
+                  isCompact={
+                    isScrolled ||
+                    searchQuery.trim().length > 0 ||
+                    isSearchFocused
+                  }
+                  onPhysicalQRLinked={async (uuid) => {
+                    try {
+                      await updateQRCode({
+                        id: qrId,
+                        uuid,
+                      });
+                      handleDownloadStatus(true, "Physical QR code linked successfully");
+                      // Refresh the QR code details
+                      refetch();
+                    } catch (error: any) {
+                      handleDownloadStatus(
+                        false,
+                        `Failed to link QR code: ${error?.message || "Unknown error"}`
+                      );
+                    }
+                  }}
                 />
 
                 {/* Tabs */}
                 <Box className=" bg-white border-b border-gray-200">
                   <HStack space="md" className="items-center justify-between">
                     <Pressable
-                      onPress={() => setActiveTab("files")}
+                      onPress={() => {
+                        setActiveTab("files");
+                        setIsSearchFocused(false);
+                      }}
                       className="flex-1 relative py-3"
                     >
                       <Text
@@ -430,7 +466,10 @@ const QRCodeDetailsScreen = () => {
                       )}
                     </Pressable>
                     <Pressable
-                      onPress={() => setActiveTab("schedules")}
+                      onPress={() => {
+                        setActiveTab("schedules");
+                        setIsSearchFocused(false);
+                      }}
                       className="flex-1 relative py-3"
                     >
                       <Text
@@ -447,7 +486,10 @@ const QRCodeDetailsScreen = () => {
                       )}
                     </Pressable>
                     <Pressable
-                      onPress={() => setActiveTab("info")}
+                      onPress={() => {
+                        setActiveTab("info");
+                        setIsSearchFocused(false);
+                      }}
                       className="flex-1 relative py-3"
                     >
                       <Text
@@ -526,6 +568,8 @@ const QRCodeDetailsScreen = () => {
                             placeholder="Search files..."
                             value={searchQuery}
                             onChangeText={setSearchQuery}
+                            onFocus={() => setIsSearchFocused(true)}
+                            onBlur={() => setIsSearchFocused(false)}
                             className="pl-3 text-base"
                           />
                         </Input>
@@ -661,7 +705,7 @@ const QRCodeDetailsScreen = () => {
             <ModalBackdrop />
             <ModalContent>
               <ModalHeader>
-                <Text>{isUploading ? 'Uploading Files' : 'Deleting File'}</Text>
+                <Text>{isUploading ? "Uploading Files" : "Deleting File"}</Text>
               </ModalHeader>
               <ModalBody>
                 <VStack space="md">

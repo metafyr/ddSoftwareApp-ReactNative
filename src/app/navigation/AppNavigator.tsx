@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { NavigationContainer } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useIsAuthenticated } from "@features/auth/api";
-import { SignInScreen } from "@features/auth/screens";
+import { SignInScreen, UserNotFoundScreen } from "@features/auth/screens";
 import { RootStackParamList } from "@shared/types";
 import DeepLinkHandler from "./DeepLinkHandler";
 import { MainPage } from "./MainPage";
@@ -43,18 +43,19 @@ const AppNavigator = () => {
   }
 
   return (
-    <NavigationContainer>
+    <>
       <DeepLinkHandler />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {isAuthenticated ? (
           <>
             <Stack.Screen name="MainDashboard" component={MainPage} />
+            <Stack.Screen name="UserNotFound" component={UserNotFoundScreen} />
           </>
         ) : (
           <Stack.Screen name="SignIn" component={SignInScreen} />
         )}
       </Stack.Navigator>
-    </NavigationContainer>
+    </>
   );
 };
 

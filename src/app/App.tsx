@@ -6,6 +6,7 @@ import * as Linking from "expo-linking";
 import "react-native-reanimated";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Notifications from "expo-notifications";
+import { NavigationContainer } from "@react-navigation/native";
 import { AppProviders } from "./providers";
 import { AppNavigator } from "./navigation";
 import { initializeApiConfig } from "@/config/apiConfig";
@@ -66,9 +67,11 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AppProviders>
-        <AppNavigator />
-      </AppProviders>
+      <NavigationContainer>
+        <AppProviders>
+          <AppNavigator />
+        </AppProviders>
+      </NavigationContainer>
     </GestureHandlerRootView>
   );
 }
