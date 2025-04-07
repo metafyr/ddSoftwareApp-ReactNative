@@ -106,60 +106,37 @@ export const useDirectS3UploadSimple = () => {
         uploadType,
       });
 
+      // Presigned URL obtained successfully
+      
       let uploadSuccess = false;
 
       try {
-        // Get file info
+        // Get file info to verify existence
         const fileInfo = await FileSystem.getInfoAsync(fileUri);
         if (!fileInfo.exists) {
           throw new Error("File does not exist");
         }
 
-        // Upload the file using appropriate method based on platform
-        if (Platform.OS === "android") {
-          // Read file as base64
-          const base64Content = await FileSystem.readAsStringAsync(fileUri, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-
-          // Upload to S3
-          const response = await fetch(presignedData.uploadUrl, {
-            method: "PUT",
+        // Use the same upload method for both platforms
+        const uploadResult = await FileSystem.uploadAsync(
+          presignedData.uploadUrl,
+          fileUri,
+          {
+            httpMethod: "PUT",
             headers: {
               "Content-Type": fileType,
             },
-            body: base64Content,
-          });
-
-          if (!response.ok) {
-            throw new Error(
-              `Upload to S3 failed with status: ${response.status}`
-            );
+            uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
           }
+        );
 
-          uploadSuccess = true;
-        } else {
-          // iOS method using FileSystem.uploadAsync
-          const uploadResult = await FileSystem.uploadAsync(
-            presignedData.uploadUrl,
-            fileUri,
-            {
-              httpMethod: "PUT",
-              headers: {
-                "Content-Type": fileType,
-              },
-              uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-            }
-          );
+        // S3 upload completed
 
-          if (uploadResult.status < 200 || uploadResult.status >= 300) {
-            throw new Error(
-              `Upload to S3 failed with status: ${uploadResult.status}`
-            );
-          }
-
-          uploadSuccess = true;
+        if (uploadResult.status < 200 || uploadResult.status >= 300) {
+          throw new Error(`Upload to S3 failed with status: ${uploadResult.status}`);
         }
+
+        uploadSuccess = true;
 
         // Notify backend that upload is complete
         if (uploadSuccess && presignedData.fileId) {
@@ -167,7 +144,7 @@ export const useDirectS3UploadSimple = () => {
             API_ENDPOINTS.COMPLETE_UPLOAD(presignedData.fileId)
           );
 
-          await fetch(completeEndpoint, {
+          const completeResponse = await fetch(completeEndpoint, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -178,6 +155,10 @@ export const useDirectS3UploadSimple = () => {
               size: fileSize,
             }),
           });
+
+          if (!completeResponse.ok) {
+            // Silent fail - will be caught by error boundary if critical
+          }
         }
 
         // Invalidate queries to refresh UI
@@ -199,12 +180,16 @@ export const useDirectS3UploadSimple = () => {
           url: presignedData.s3Url,
         };
       } catch (uploadError) {
+        // Error handled in catch block
+        
         // If we failed to upload to S3, notify backend to clean up
         if (presignedData.fileId) {
           try {
             const completeEndpoint = getApiUrl(
               API_ENDPOINTS.COMPLETE_UPLOAD(presignedData.fileId)
             );
+            // Notify backend of failure
+            
             await fetch(completeEndpoint, {
               method: "POST",
               headers: {
@@ -217,12 +202,14 @@ export const useDirectS3UploadSimple = () => {
             });
           } catch (notifyError) {
             // Silently handle notification error
+            // Silent failure for notification error
           }
         }
 
         throw uploadError;
       }
     } catch (error) {
+      // Upload error will be shown to user via UI
       setError(error instanceof Error ? error : new Error(String(error)));
       throw error;
     } finally {

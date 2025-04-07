@@ -5245,7 +5245,7 @@ expo-image-loader@~5.0.0:
 
 expo-image-manipulator@~13.0.6:
   version "13.0.6"
-  resolved "https://registry.yarnpkg.com/expo-image-manipulator/-/expo-image-manipulator-13.0.6.tgz#a6d5504ec0df34c8caa53a62eac7253b2267fab9"
+  resolved "https://registry.npmjs.org/expo-image-manipulator/-/expo-image-manipulator-13.0.6.tgz"
   integrity sha512-Rz8Kcfx1xYm0AsIDi6zfKYUDnwCP8edgYXWb00KAkzOF8bDxwzTrnvESWhCiveM4IB3fojjLpNeENME34p3bzA==
   dependencies:
     expo-image-loader "~5.0.0"
@@ -5259,7 +5259,7 @@ expo-image-picker@~16.0.6:
 
 expo-intent-launcher@~12.0.2:
   version "12.0.2"
-  resolved "https://registry.yarnpkg.com/expo-intent-launcher/-/expo-intent-launcher-12.0.2.tgz#cb576785a6eac3ef3cb6d4a14231aa52b76b2903"
+  resolved "https://registry.npmjs.org/expo-intent-launcher/-/expo-intent-launcher-12.0.2.tgz"
   integrity sha512-9JYyuuONE9AxoZgRyztcgfAaIIGvrUQAbFnYOPZcrHSBWhbF1203S3ho1Hk67jWhC72Um8+pJ+rXBxAp3ZZlxA==
 
 expo-json-utils@~0.14.0:
@@ -5345,6 +5345,11 @@ expo-router@^4.0.17:
     schema-utils "^4.0.1"
     semver "~7.6.3"
     server-only "^0.0.1"
+
+expo-secure-store@~14.0.1:
+  version "14.0.1"
+  resolved "https://registry.yarnpkg.com/expo-secure-store/-/expo-secure-store-14.0.1.tgz#8953d5966430f5ff262f4d99e7551205870078d7"
+  integrity sha512-QUS+j4+UG4jRQalgnpmTvvrFnMVLqPiUZRzYPnG3+JrZ5kwVW2w6YS3WWerPoR7C6g3y/a2htRxRSylsDs+TaQ==
 
 expo-sharing@~13.0.1:
   version "13.0.1"

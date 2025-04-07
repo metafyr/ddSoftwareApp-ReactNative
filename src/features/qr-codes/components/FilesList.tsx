@@ -8,8 +8,18 @@ import {
   Icon,
   Menu,
   MenuItem,
+  AlertDialog,
+  AlertDialogBackdrop,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogCloseButton,
+  Button,
+  ButtonText,
+  CloseIcon,
 } from "@/../components/ui";
-import { FileIcon, MoreVertical, Download, Share2 } from "lucide-react-native";
+import { FileIcon, MoreVertical, Download, Share2, Trash2 } from "lucide-react-native";
 import { File } from "@shared/types";
 
 interface FilesListProps {
@@ -17,6 +27,7 @@ interface FilesListProps {
   onFilePress: (file: File) => void;
   onDownloadPress: (file: File) => void;
   onSharePress: (file: File) => void;
+  onDeletePress: (file: File) => void;
 }
 
 const getFileTypeInfo = (file: File) => {
@@ -69,63 +80,130 @@ export const FilesList = ({
   onFilePress,
   onDownloadPress,
   onSharePress,
+  onDeletePress,
 }: FilesListProps) => {
+  const [fileToDelete, setFileToDelete] = React.useState<File | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  
+  const handleDeletePress = (file: File) => {
+    setFileToDelete(file);
+    setShowDeleteConfirm(true);
+  };
+  
+  const confirmDelete = () => {
+    if (fileToDelete) {
+      onDeletePress(fileToDelete);
+      setShowDeleteConfirm(false);
+      setFileToDelete(null);
+    }
+  };
   return (
-    <FlatList
-      data={files}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => {
-        const fileType = getFileTypeInfo(item);
+    <>
+      <FlatList
+        data={files}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => {
+          const fileType = getFileTypeInfo(item);
 
-        return (
-          <Pressable onPress={() => onFilePress(item)}>
-            <Box className="mb-3 p-4 bg-white rounded-lg border border-gray-200">
-              <HStack className="items-center space-x-4">
-                {/* File Details */}
-                <Box className="flex-1">
-                  <Text className="font-medium text-sm" numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text className="text-gray-500 text-xs">
-                    {formatFileSize(item.size)} • {formatDate(item.createdAt)}
-                  </Text>
-                </Box>
+          return (
+            <Pressable onPress={() => onFilePress(item)}>
+              <Box className="mb-3 p-4 bg-white rounded-lg border border-gray-200">
+                <HStack className="items-center space-x-4">
+                  {/* File Details */}
+                  <Box className="flex-1">
+                    <Text className="font-medium text-sm" numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <Text className="text-gray-500 text-xs">
+                      {formatFileSize(item.size)} • {formatDate(item.createdAt)}
+                    </Text>
+                  </Box>
 
-                {/* Menu */}
-                <Menu
-                  trigger={(triggerProps) => (
-                    <Pressable hitSlop={10} {...triggerProps}>
-                      <Box className="w-8 h-8 rounded-full bg-gray-50 items-center justify-center">
-                        <Icon
-                          as={MoreVertical}
-                          size="sm"
-                          className="text-gray-600"
-                        />
-                      </Box>
-                    </Pressable>
-                  )}
-                >
-                  <MenuItem onPress={() => onDownloadPress(item)}>
-                    <HStack space="sm" className="items-center">
-                      <Icon as={Download} size="sm" className="text-gray-600" />
-                      <Text>Download</Text>
-                    </HStack>
-                  </MenuItem>
-                  <MenuItem onPress={() => onSharePress(item)}>
-                    <HStack space="sm" className="items-center">
-                      <Icon as={Share2} size="sm" className="text-gray-600" />
-                      <Text>Share</Text>
-                    </HStack>
-                  </MenuItem>
-                </Menu>
-              </HStack>
-            </Box>
-          </Pressable>
-        );
-      }}
-      contentContainerClassName="pb-4"
-      showsVerticalScrollIndicator={false}
-    />
+                  {/* Menu */}
+                  <Menu
+                    trigger={(triggerProps) => (
+                      <Pressable hitSlop={10} {...triggerProps}>
+                        <Box className="w-8 h-8 rounded-full bg-gray-50 items-center justify-center">
+                          <Icon
+                            as={MoreVertical}
+                            size="sm"
+                            className="text-gray-600"
+                          />
+                        </Box>
+                      </Pressable>
+                    )}
+                  >
+                    <MenuItem onPress={() => onDownloadPress(item)}>
+                      <HStack space="sm" className="items-center">
+                        <Icon as={Download} size="sm" className="text-gray-600" />
+                        <Text>Download</Text>
+                      </HStack>
+                    </MenuItem>
+                    <MenuItem onPress={() => onSharePress(item)}>
+                      <HStack space="sm" className="items-center">
+                        <Icon as={Share2} size="sm" className="text-gray-600" />
+                        <Text>Share</Text>
+                      </HStack>
+                    </MenuItem>
+                    <MenuItem onPress={() => handleDeletePress(item)}>
+                      <HStack space="sm" className="items-center">
+                        <Icon as={Trash2} size="sm" className="text-red-600" />
+                        <Text className="text-red-600">Delete</Text>
+                      </HStack>
+                    </MenuItem>
+                  </Menu>
+                </HStack>
+              </Box>
+            </Pressable>
+          );
+        }}
+        contentContainerClassName="pb-4"
+        showsVerticalScrollIndicator={false}
+      />
+      
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setFileToDelete(null);
+        }}
+      >
+        <AlertDialogBackdrop />
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <Text className="text-lg font-semibold">Delete File</Text>
+            <AlertDialogCloseButton>
+              <Icon as={CloseIcon} />
+            </AlertDialogCloseButton>
+          </AlertDialogHeader>
+          <AlertDialogBody>
+            <Text>
+              Are you sure you want to delete "{fileToDelete?.name}"? This action cannot be undone.
+            </Text>
+          </AlertDialogBody>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onPress={() => {
+                setShowDeleteConfirm(false);
+                setFileToDelete(null);
+              }}
+              className="mr-2"
+            >
+              <ButtonText>Cancel</ButtonText>
+            </Button>
+            <Button
+              variant="solid"
+              colorScheme="error"
+              onPress={confirmDelete}
+            >
+              <ButtonText>Delete</ButtonText>
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

@@ -149,6 +149,12 @@ export class ApiClient {
         }
       }
 
+      // If the response is 204 No Content or has empty body, return null
+      if (response!.status === 204 || response!.headers.get('content-length') === '0') {
+        return null;
+      }
+      
+      // Otherwise parse the response as JSON
       const data = await response!.json();
       return data;
     } catch (error) {

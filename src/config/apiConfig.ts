@@ -19,7 +19,7 @@ const BACKEND_URL_KEY = "@ddSoft:backendUrl";
 const getBaseUrl = () => {
   console.log("Current API_URL from env:", API_URL);
 
-  // If API_URL is explicitly set in environment, use it
+  // // If API_URL is explicitly set in environment, use it
   if (API_URL) {
     return API_URL;
   }

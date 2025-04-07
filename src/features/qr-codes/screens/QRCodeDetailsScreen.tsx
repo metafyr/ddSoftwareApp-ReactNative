@@ -39,6 +39,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@shared/types";
 import { useQRCodeDetails, useUploadFile } from "../api";
 import { QRCodeCard, ExpandableFAB } from "../components";
+import { useDeleteFile } from "../api";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -78,6 +79,7 @@ const QRCodeDetailsScreen = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showFileDetail, setShowFileDetail] = useState(false);
   const [hasMediaPermission, setHasMediaPermission] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Use the QR code details hook
   const {
@@ -88,6 +90,7 @@ const QRCodeDetailsScreen = () => {
   } = useQRCodeDetails(qrId, { isPhysicalId });
   const { mutateAsync: uploadFile } = useUploadFile();
   const directS3Upload = useDirectS3UploadSimple();
+  const { mutateAsync: deleteFile } = useDeleteFile();
 
   // Create a reference to track download progress
   const [downloadProgress, setDownloadProgress] = useState(0);
@@ -118,7 +121,7 @@ const QRCodeDetailsScreen = () => {
     },
   });
 
-  // Request media library permissions on mount
+  // Request media library permissions on mount and clean up resources
   useEffect(() => {
     (async () => {
       if (Platform.OS === "android") {
@@ -126,6 +129,11 @@ const QRCodeDetailsScreen = () => {
         setHasMediaPermission(status === "granted");
       }
     })();
+    
+    // Clean up the download manager when component unmounts
+    return () => {
+      downloadManager.cleanup();
+    };
   }, []);
 
   const handleBack = () => {
@@ -188,6 +196,23 @@ const QRCodeDetailsScreen = () => {
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
+    }
+  };
+
+  const handleFileDelete = async (file: File) => {
+    try {
+      setIsDeleting(true);
+      await deleteFile({
+        id: file.id,
+        qrCodeId: qrId,
+        folderId: file.folderId,
+      });
+      handleDownloadStatus(true, `${file.name} deleted successfully`);
+      await refetch();
+    } catch (error: any) {
+      handleDownloadStatus(false, `Error deleting file: ${error?.message || 'Unknown error'}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -512,6 +537,7 @@ const QRCodeDetailsScreen = () => {
                         onFilePress={(file) => setSelectedFile(file)}
                         onDownloadPress={handleFileDownloadDirect}
                         onSharePress={handleFileShare}
+                        onDeletePress={handleFileDelete}
                       />
                     </>
                   ) : (
@@ -626,26 +652,32 @@ const QRCodeDetailsScreen = () => {
             </Box>
           )}
 
-          {/* Upload Progress Modal */}
+          {/* Upload/Delete Progress Modal */}
           <Modal
-            isOpen={isUploading}
+            isOpen={isUploading || isDeleting}
             onClose={() => {}}
             closeOnOverlayClick={false}
           >
             <ModalBackdrop />
             <ModalContent>
               <ModalHeader>
-                <Text>Uploading Files</Text>
+                <Text>{isUploading ? 'Uploading Files' : 'Deleting File'}</Text>
               </ModalHeader>
               <ModalBody>
                 <VStack space="md">
-                  <Text>Please wait while files are being uploaded...</Text>
-                  <Progress value={uploadProgress} size="lg">
-                    <ProgressFilledTrack />
-                  </Progress>
-                  <Text className="text-center">
-                    {Math.round(uploadProgress)}%
-                  </Text>
+                  {isUploading ? (
+                    <>
+                      <Text>Please wait while files are being uploaded...</Text>
+                      <Progress value={uploadProgress} size="lg">
+                        <ProgressFilledTrack />
+                      </Progress>
+                      <Text className="text-center">
+                        {Math.round(uploadProgress)}%
+                      </Text>
+                    </>
+                  ) : (
+                    <Text>Please wait while the file is being deleted...</Text>
+                  )}
                 </VStack>
               </ModalBody>
             </ModalContent>
@@ -658,6 +690,7 @@ const QRCodeDetailsScreen = () => {
             onClose={() => setShowFileDetail(false)}
             onDownload={handleFileDownloadDirect}
             onShare={handleFileShare}
+            onDelete={handleFileDelete}
           />
         </>
       )}

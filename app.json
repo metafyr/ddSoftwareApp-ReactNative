@@ -7,7 +7,10 @@
     "icon": "./assets/icon.png",
     "scheme": "ddsoftware",
     "linking": {
-      "prefixes": ["ddsoftware://", "https://ddsoftware.app"],
+      "prefixes": [
+        "ddsoftware://",
+        "https://ddsoftware.app"
+      ],
       "config": {
         "screens": {
           "MainDashboard": {
@@ -30,17 +33,23 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ddsoftware.qrcodeapp",
-      "associatedDomains": ["applinks:ddsoftware.app"],
+      "associatedDomains": [
+        "applinks:ddsoftware.app"
+      ],
       "infoPlist": {
         "NSCameraUsageDescription": "Camera permission is required to scan documents",
         "NSUserNotificationUsageDescription": "We need to send you notifications about your downloaded files",
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["ddsoftware"]
+            "CFBundleURLSchemes": [
+              "ddsoftware"
+            ]
           }
         ]
       }
@@ -65,7 +74,10 @@
               "host": "*.ddsoftware.app"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "permissions": [
@@ -120,9 +132,12 @@
         {
           "icon": "./assets/icon.png",
           "color": "#ffffff",
-          "sounds": ["./assets/notification.wav"]
+          "sounds": [
+            "./assets/notification.wav"
+          ]
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }

@@ -15,7 +15,7 @@ import {
   Icon,
   Pressable,
 } from "@/../components/ui";
-import { Share2, Download, X } from "lucide-react-native";
+import { Share2, Download, X, Trash2 } from "lucide-react-native";
 import { File } from "@shared/types";
 
 interface FileDetailModalProps {
@@ -24,6 +24,7 @@ interface FileDetailModalProps {
   onClose: () => void;
   onDownload: (file: File) => void;
   onShare: (file: File) => void;
+  onDelete?: (file: File) => void;
 }
 
 export const FileDetailModal = ({
@@ -32,6 +33,7 @@ export const FileDetailModal = ({
   onClose,
   onDownload,
   onShare,
+  onDelete,
 }: FileDetailModalProps) => {
   if (!file) return null;
 
@@ -149,8 +151,25 @@ export const FileDetailModal = ({
         </ModalBody>
 
         <ModalFooter>
+          {onDelete && (
+            <Button
+              className="flex-1 mr-2"
+              variant="outline"
+              colorScheme="error"
+              onPress={() => {
+                if (file) {
+                  onDelete(file);
+                  onClose();
+                }
+              }}
+            >
+              <Icon as={Trash2} className="mr-1 text-error-600" />
+              <ButtonText className="text-error-600">Delete</ButtonText>
+            </Button>
+          )}
+          
           <Button
-            className="flex-1 mr-2"
+            className={`flex-1 ${onDelete ? 'mr-2' : 'mr-2'}`}
             variant="outline"
             onPress={() => {
               onShare(file);
