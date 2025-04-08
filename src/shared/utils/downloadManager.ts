@@ -425,8 +425,7 @@ export class DownloadManager {
         }
       }
 
-      // Choose between toast and system notification based on app state
-      // We'll use the toast callback for in-app notifications
+      // Call toast callback to notify download completion
       if (this.toastCallbacks.onSuccess) {
         this.toastCallbacks.onSuccess(
           `${name} downloaded successfully`,
@@ -447,7 +446,13 @@ export class DownloadManager {
           notificationId: `complete-${downloadId}`,
         }
       );
-
+      
+      // Automatically open the file immediately after download
+      // Small delay ensures UI updates before opening the file
+      setTimeout(() => {
+        this.openFile(finalUri, actualMimeType, name);
+      }, 500);
+      
       onSuccess?.();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";

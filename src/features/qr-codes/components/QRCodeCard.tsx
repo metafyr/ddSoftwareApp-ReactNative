@@ -26,7 +26,7 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
   const formattedDate = createdAt
     ? new Date(createdAt).toLocaleDateString()
     : "";
-    
+
   // QR code scanner for physical QR codes
   const {
     isVisible,
@@ -35,7 +35,7 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
     closeScanner,
     handleUUIDDetected,
   } = useQRCodeScanner();
-  
+
   // Handle the QR code press - either view the linked QR code or open scanner to link one
   const handleQRCodePress = () => {
     if (linkedPhysicalQR) {
@@ -46,7 +46,7 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
       openScanner();
     }
   };
-  
+
   // Make scanner full screen, separate from modal constraints
   React.useEffect(() => {
     if (isVisible) {
@@ -59,7 +59,7 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
       };
     }
   }, [isVisible]);
-  
+
   // Handle the scanned UUID when scanner closes
   React.useEffect(() => {
     if (scannedUUID && onPhysicalQRLinked) {
@@ -81,7 +81,7 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
       style={{
         height: heightAnim.interpolate({
           inputRange: [0, 1],
-          outputRange: [40, 140], // Increased normal mode height to ensure full visibility with margin
+          outputRange: [40, 128], // Increased normal mode height to ensure full visibility with margin
         }),
         marginBottom: heightAnim.interpolate({
           inputRange: [0, 1],
@@ -108,7 +108,11 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
           {/* Only show QR code in non-compact mode */}
           {!isCompact && (
             <Pressable onPress={handleQRCodePress}>
-              <Box className={`p-1 border border-secondary-100 ${!linkedPhysicalQR ? 'opacity-50' : ''}`}>
+              <Box
+                className={`p-1 border border-secondary-100 ${
+                  !linkedPhysicalQR ? "opacity-50" : ""
+                }`}
+              >
                 <QRCodeIcon value={linkedPhysicalQR} size={60} />
               </Box>
             </Pressable>
@@ -122,7 +126,7 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
               name={name}
             />
           )}
-          
+
           {/* QR Code Scanner is rendered by the hook */}
           {isVisible && (
             <QRCodeScanner

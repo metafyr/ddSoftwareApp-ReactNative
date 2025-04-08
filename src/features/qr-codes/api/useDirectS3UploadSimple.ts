@@ -117,26 +117,104 @@ export const useDirectS3UploadSimple = () => {
           throw new Error("File does not exist");
         }
 
-        // Use the same upload method for both platforms
-        const uploadResult = await FileSystem.uploadAsync(
-          presignedData.uploadUrl,
-          fileUri,
-          {
-            httpMethod: "PUT",
-            headers: {
-              "Content-Type": fileType,
-            },
-            uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-          }
-        );
+        // Prepare for S3 upload with the presigned URL
 
-        // S3 upload completed
+        // Convert file to Base64 for binary upload if needed
+        let finalFileUri = fileUri;
+        let finalContentType = fileType;
 
-        if (uploadResult.status < 200 || uploadResult.status >= 300) {
-          throw new Error(`Upload to S3 failed with status: ${uploadResult.status}`);
+        // Ensure we have valid content type for PDFs
+        if (fileType.includes("pdf") && !finalContentType.includes("application/pdf")) {
+          finalContentType = "application/pdf";
         }
 
-        uploadSuccess = true;
+        // Try different approaches for uploading PDFs and large files
+        if (fileType.includes("pdf") || fileSize > 5 * 1024 * 1024) {
+          // Use special handling for PDFs and large files
+          try {
+            // Verify file exists and get details
+            const fileInfo = await FileSystem.getInfoAsync(fileUri);
+            
+            // First, verify file exists
+            const fileDetails = await FileSystem.getInfoAsync(fileUri);
+            if (!fileDetails.exists) {
+              throw new Error(`File doesn't exist at path: ${fileUri}`);
+            }
+            
+            // File exists, proceed with upload
+            
+            // Use the standard uploadAsync method with the correct parameters
+            const response = await FileSystem.uploadAsync(
+              presignedData.uploadUrl,
+              fileUri,
+              {
+                httpMethod: "PUT",
+                headers: {
+                  "Content-Type": finalContentType
+                },
+                // BINARY_CONTENT is the most reliable for PDFs
+                uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT
+              }
+            );
+            
+            // Check the upload response status
+            if (response.status >= 200 && response.status < 300) {
+              uploadSuccess = true;
+            } else {
+              throw new Error(`Upload failed with status: ${response.status}`);
+            }
+          } catch (uploadError) {
+            // Initial approach failed, try fallback method
+            try {
+              // For fallback, try alternative approach with different upload type
+              const response = await FileSystem.uploadAsync(
+                presignedData.uploadUrl,
+                fileUri,
+                {
+                  httpMethod: "PUT",
+                  headers: {
+                    "Content-Type": finalContentType
+                  },
+                  // MULTIPART as fallback if BINARY_CONTENT fails
+                  uploadType: FileSystem.FileSystemUploadType.MULTIPART
+                }
+              );
+              
+              // Check fallback upload response
+              
+              if (response.status < 200 || response.status >= 300) {
+                throw new Error(`Upload to S3 failed with status: ${response.status}`);
+              }
+              
+              uploadSuccess = true;
+            } catch (fallbackError) {
+              // Both upload methods failed
+              throw fallbackError;
+            }
+          }
+        } else {
+          // Use FileSystem.uploadAsync for smaller files and images
+          const response = await FileSystem.uploadAsync(
+            presignedData.uploadUrl,
+            fileUri,
+            {
+              httpMethod: "PUT",
+              headers: {
+                "Content-Type": finalContentType,
+              },
+              uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+            }
+          );
+          
+          if (response.status < 200 || response.status >= 300) {
+            throw new Error(`Upload to S3 failed with status: ${response.status}`);
+          }
+          
+          uploadSuccess = true;
+        }
+
+        // S3 upload completed - uploadSuccess is already set based on the upload method used
+        // No need to check status again, as we've already set uploadSuccess
 
         // Notify backend that upload is complete
         if (uploadSuccess && presignedData.fileId) {

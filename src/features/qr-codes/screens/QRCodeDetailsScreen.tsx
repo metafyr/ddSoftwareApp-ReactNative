@@ -292,55 +292,98 @@ const QRCodeDetailsScreen = () => {
     try {
       setIsUploading(true);
       setUploadProgress(0);
+      
+      // Show feedback to user that uploading process has started
+      handleDownloadStatus(true, "Preparing to upload file(s)...");
+      
       const result = await DocumentPicker.getDocumentAsync({
         type: ["application/pdf", "image/*"],
+        copyToCacheDirectory: true, // Important: ensure file is in app's cache
         multiple: true,
       });
 
       if (result.canceled) {
+        setIsUploading(false);
+        setUploadProgress(0);
         return;
       }
 
       const files = result.assets;
+      
+      // Process selected files for upload
+      
       const totalFiles = files.length;
       let completedFiles = 0;
 
       const uploadPromises = files.map(async (file) => {
-        const mimeType =
-          file.mimeType ||
-          (file.name.endsWith(".pdf")
-            ? "application/pdf"
-            : file.name.match(/\.(jpe?g|png|gif|bmp)$/i)
-            ? "image/jpeg"
-            : "application/octet-stream");
+        try {
+          // Ensure proper MIME type detection
+          const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+          
+          // More accurate MIME type detection
+          let mimeType = file.mimeType;
+          
+          if (!mimeType || mimeType === "application/octet-stream") {
+            const mimeTypeMap: Record<string, string> = {
+              pdf: "application/pdf",
+              jpg: "image/jpeg",
+              jpeg: "image/jpeg",
+              png: "image/png",
+              gif: "image/gif",
+              bmp: "image/bmp",
+              doc: "application/msword",
+              docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              xls: "application/vnd.ms-excel",
+              xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            };
+            
+            mimeType = mimeTypeMap[fileExtension] || "application/octet-stream";
+          }
+          
+          // Prepare file data for upload with correct MIME type
 
-        let fileUri = file.uri;
-        let fileSize = file.size || 0;
+          let fileUri = file.uri;
+          let fileSize = file.size || 0;
 
-        if (mimeType.startsWith("image/")) {
-          const compressed = await compressImageIfNeeded(file.uri, mimeType);
-          fileUri = compressed.uri;
-          fileSize = compressed.size;
-        } else if (!fileSize) {
-          const fileInfo = await FileSystem.getInfoAsync(file.uri);
-          fileSize = "size" in fileInfo ? fileInfo.size : 0;
+          // Get accurate file size if not provided
+          if (!fileSize) {
+            const fileInfo = await FileSystem.getInfoAsync(fileUri);
+            fileSize = "size" in fileInfo ? fileInfo.size : 0;
+            // File size determined from file info
+          }
+
+          // Only compress images, not PDFs or other files
+          if (mimeType.startsWith("image/") && !mimeType.includes("gif")) {
+            // Compress image to optimize upload size
+            const compressed = await compressImageIfNeeded(fileUri, mimeType);
+            fileUri = compressed.uri;
+            fileSize = compressed.size;
+            // Use compressed image for upload
+          }
+
+          return directS3Upload
+            .upload({
+              fileUri,
+              fileName: file.name,
+              fileType: mimeType,
+              fileSize,
+              qrCodeId: qrId,
+              folderId: undefined,
+              isPublic: false,
+              uploadType: "uploaded",
+            })
+            .catch(error => {
+              // Propagate upload errors with file context
+              throw error;
+            })
+            .finally(() => {
+              completedFiles++;
+              setUploadProgress((completedFiles / totalFiles) * 100);
+            });
+        } catch (error) {
+          // Handle file processing errors
+          throw error;
         }
-
-        return directS3Upload
-          .upload({
-            fileUri,
-            fileName: file.name,
-            fileType: mimeType,
-            fileSize,
-            qrCodeId: qrId,
-            folderId: undefined,
-            isPublic: false,
-            uploadType: "uploaded",
-          })
-          .finally(() => {
-            completedFiles++;
-            setUploadProgress((completedFiles / totalFiles) * 100);
-          });
       });
 
       try {
@@ -509,90 +552,93 @@ const QRCodeDetailsScreen = () => {
                 </Box>
 
                 {/* Content */}
-                <Box className="flex-1">
-                  {activeTab === "files" ? (
-                    <>
-                      {/* File Type Filter */}
-                      <HStack space="sm" className="mb-4 mt-2">
-                        <Pressable
-                          onPress={() => setFileFilter("uploaded")}
-                          className={`px-4 py-2 rounded-full ${
+                {/* Content based on active tab */}
+                {activeTab === "files" && (
+                  <Box className="flex-1">
+                    {/* File Type Filter */}
+                    <HStack space="sm" className="mb-4 mt-2">
+                      <Pressable
+                        onPress={() => setFileFilter("uploaded")}
+                        className={`px-4 py-2 rounded-full ${
+                          fileFilter === "uploaded"
+                            ? "bg-primary-500"
+                            : "bg-gray-100"
+                        }`}
+                      >
+                        <Text
+                          className={`text-sm font-medium ${
                             fileFilter === "uploaded"
-                              ? "bg-primary-500"
-                              : "bg-gray-100"
+                              ? "text-white"
+                              : "text-gray-600"
                           }`}
                         >
-                          <Text
-                            className={`text-sm font-medium ${
-                              fileFilter === "uploaded"
-                                ? "text-white"
-                                : "text-gray-600"
-                            }`}
-                          >
-                            Uploaded
-                          </Text>
-                        </Pressable>
+                          Uploaded
+                        </Text>
+                      </Pressable>
 
-                        <Pressable
-                          onPress={() => setFileFilter("scanned")}
-                          className={`px-4 py-2 rounded-full ${
+                      <Pressable
+                        onPress={() => setFileFilter("scanned")}
+                        className={`px-4 py-2 rounded-full ${
+                          fileFilter === "scanned"
+                            ? "bg-primary-500"
+                            : "bg-gray-100"
+                        }`}
+                      >
+                        <Text
+                          className={`text-sm font-medium ${
                             fileFilter === "scanned"
-                              ? "bg-primary-500"
-                              : "bg-gray-100"
+                              ? "text-white"
+                              : "text-gray-600"
                           }`}
                         >
-                          <Text
-                            className={`text-sm font-medium ${
-                              fileFilter === "scanned"
-                                ? "text-white"
-                                : "text-gray-600"
-                            }`}
-                          >
-                            Scanned
-                          </Text>
-                        </Pressable>
-                      </HStack>
+                          Scanned
+                        </Text>
+                      </Pressable>
+                    </HStack>
 
-                      {/* Search Input */}
-                      <Box className="mb-5">
-                        <Input
-                          size="lg"
-                          className="bg-white border border-gray-200 rounded-lg"
-                        >
-                          <Icon
-                            as={Search}
-                            size="md"
-                            className="ml-3 text-gray-400"
-                          />
-                          <InputField
-                            placeholder="Search files..."
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            onFocus={() => setIsSearchFocused(true)}
-                            onBlur={() => setIsSearchFocused(false)}
-                            className="pl-3 text-base"
-                          />
-                        </Input>
-                      </Box>
+                    {/* Search Input */}
+                    <Box className="mb-5">
+                      <Input
+                        size="lg"
+                        className="bg-white border border-gray-200 rounded-lg"
+                      >
+                        <Icon
+                          as={Search}
+                          size="md"
+                          className="ml-3 text-gray-400"
+                        />
+                        <InputField
+                          placeholder="Search files..."
+                          value={searchQuery}
+                          onChangeText={setSearchQuery}
+                          onFocus={() => setIsSearchFocused(true)}
+                          onBlur={() => setIsSearchFocused(false)}
+                          className="pl-3 text-base"
+                        />
+                      </Input>
+                    </Box>
 
-                      {/* Files List */}
-                      <FilesList
-                        files={getFilteredFiles()}
-                        onFilePress={(file) => setSelectedFile(file)}
-                        onDownloadPress={handleFileDownloadDirect}
-                        onSharePress={handleFileShare}
-                        onDeletePress={handleFileDelete}
-                      />
-                    </>
-                  ) : (
+                    {/* Files List */}
+                    <FilesList
+                      files={getFilteredFiles()}
+                      onFilePress={(file) => setSelectedFile(file)}
+                      onDownloadPress={handleFileDownloadDirect}
+                      onSharePress={handleFileShare}
+                      onDeletePress={handleFileDelete}
+                    />
+                  </Box>
+                )}
+                
+                {activeTab === "schedules" && (
+                  <Box className="flex-1">
                     <Text className="text-gray-500 text-center py-4">
                       No schedules available
                     </Text>
-                  )}
-                </Box>
+                  </Box>
+                )}
 
                 {activeTab === "info" && (
-                  <Box className="py-8">
+                  <Box className="flex-1">
                     <VStack space="md">
                       <Box className="bg-white p-4 rounded-lg">
                         <Text className="text-gray-500 mb-1">QR Code ID</Text>
