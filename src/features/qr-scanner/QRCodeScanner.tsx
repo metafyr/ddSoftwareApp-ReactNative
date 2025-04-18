@@ -298,7 +298,12 @@ export const useQRCodeScanner = () => {
   const handleUUIDDetected = useCallback((uuid: string) => {
     console.log("UUID detected in hook:", uuid);
     setScannedUUID(uuid);
-  }, []);
+    
+    // Close scanner after UUID is detected
+    setTimeout(() => {
+      closeScanner();
+    }, 500);
+  }, [closeScanner]);
 
   return {
     isVisible,

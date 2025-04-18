@@ -97,6 +97,12 @@ export const FilesList = ({
       setFileToDelete(null);
     }
   };
+  
+  // Modified to handle direct download on row click
+  const handleRowPress = (file: File) => {
+    // Download and open the file directly instead of just showing file details
+    onDownloadPress(file);
+  };
   return (
     <>
       <FlatList
@@ -106,7 +112,7 @@ export const FilesList = ({
           const fileType = getFileTypeInfo(item);
 
           return (
-            <Pressable onPress={() => onFilePress(item)}>
+            <Pressable onPress={() => handleRowPress(item)}>
               <Box className="mb-3 p-4 bg-white rounded-lg border border-gray-200">
                 <HStack className="items-center space-x-4">
                   {/* File Details */}
@@ -119,10 +125,18 @@ export const FilesList = ({
                     </Text>
                   </Box>
 
-                  {/* Menu */}
+                  {/* Menu - Download option removed */}
                   <Menu
                     trigger={(triggerProps) => (
-                      <Pressable hitSlop={10} {...triggerProps}>
+                      <Pressable 
+                        hitSlop={10} 
+                        {...triggerProps}
+                        // Prevent row press event from triggering when menu is opened
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          triggerProps.onPress && triggerProps.onPress(e);
+                        }}
+                      >
                         <Box className="w-8 h-8 rounded-full bg-gray-50 items-center justify-center">
                           <Icon
                             as={MoreVertical}
@@ -133,19 +147,25 @@ export const FilesList = ({
                       </Pressable>
                     )}
                   >
-                    <MenuItem onPress={() => onDownloadPress(item)}>
-                      <HStack space="sm" className="items-center">
-                        <Icon as={Download} size="sm" className="text-gray-600" />
-                        <Text>Download</Text>
-                      </HStack>
-                    </MenuItem>
-                    <MenuItem onPress={() => onSharePress(item)}>
+                    <MenuItem 
+                      onPress={(e) => {
+                        // Prevent row press event from triggering
+                        e.stopPropagation();
+                        onSharePress(item);
+                      }}
+                    >
                       <HStack space="sm" className="items-center">
                         <Icon as={Share2} size="sm" className="text-gray-600" />
                         <Text>Share</Text>
                       </HStack>
                     </MenuItem>
-                    <MenuItem onPress={() => handleDeletePress(item)}>
+                    <MenuItem 
+                      onPress={(e) => {
+                        // Prevent row press event from triggering
+                        e.stopPropagation();
+                        handleDeletePress(item);
+                      }}
+                    >
                       <HStack space="sm" className="items-center">
                         <Icon as={Trash2} size="sm" className="text-red-600" />
                         <Text className="text-red-600">Delete</Text>

@@ -35,6 +35,7 @@ import {
 } from "lucide-react-native";
 import { File, QRCodeDetailsType, Folder } from "@shared/types";
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
+import { useAuth } from "@features/auth/api/useAuth";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "@shared/types";
 import { useQRCodeDetails, useUploadFile, useUpdateQRCode } from "../api";
@@ -62,6 +63,7 @@ const QRCodeDetailsScreen = () => {
   const route = useRoute<QRCodeDetailsRouteProp>();
   const { qrId, isPhysicalId = false } = route.params;
   const { mutateAsync: updateQRCode } = useUpdateQRCode();
+  const { data: user } = useAuth();
   const [showScheduleForm, setShowScheduleForm] = useState(false);
   const [showAlert, setShowAlert] = useState<{
     show: boolean;
@@ -290,6 +292,12 @@ const QRCodeDetailsScreen = () => {
 
   const handleUpload = async () => {
     try {
+      // Prevent multiple uploads at the same time
+      if (isUploading) {
+        console.log("Upload already in progress");
+        return;
+      }
+      
       setIsUploading(true);
       setUploadProgress(0);
       
@@ -361,6 +369,16 @@ const QRCodeDetailsScreen = () => {
             // Use compressed image for upload
           }
 
+          // Ensure we have the organization ID
+          if (!user?.organizationId) {
+            throw new Error("Organization ID is required for file upload");
+          }
+
+          // Ensure we have a valid user ID (UUID format)
+          const validUserId = user.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id) 
+            ? user.id 
+            : "00000000-0000-0000-0000-000000000000";
+
           return directS3Upload
             .upload({
               fileUri,
@@ -368,9 +386,11 @@ const QRCodeDetailsScreen = () => {
               fileType: mimeType,
               fileSize,
               qrCodeId: qrId,
+              orgId: user.organizationId, // Include required organization ID
               folderId: undefined,
               isPublic: false,
               uploadType: "uploaded",
+              userId: validUserId, // Use the validated UUID
             })
             .catch(error => {
               // Propagate upload errors with file context
@@ -392,10 +412,18 @@ const QRCodeDetailsScreen = () => {
         // Set file filter to "uploaded" after uploading new files
         setFileFilter("uploaded");
       } catch (uploadError: any) {
-        handleDownloadStatus(
-          false,
-          `Upload failed: ${uploadError?.message || "Unknown error"}`
-        );
+        // Handle specific error for missing organization ID
+        if (uploadError?.message?.includes('Organization ID is required')) {
+          handleDownloadStatus(
+            false,
+            'Your organization information is missing. Please try logging in again.'
+          );
+        } else {
+          handleDownloadStatus(
+            false,
+            `Upload failed: ${uploadError?.message || "Unknown error"}`
+          );
+        }
       }
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -469,14 +497,27 @@ const QRCodeDetailsScreen = () => {
                   }
                   onPhysicalQRLinked={async (uuid) => {
                     try {
+                      console.log("QRCodeDetailsScreen: Linking physical QR with UUID:", uuid);
+                      
+                      // Show status to user
+                      handleDownloadStatus(true, "Linking physical QR code...");
+                      
+                      // Update the QR code with the new UUID
                       await updateQRCode({
                         id: qrId,
                         uuid,
                       });
+                      
+                      // Show success message
                       handleDownloadStatus(true, "Physical QR code linked successfully");
-                      // Refresh the QR code details
-                      refetch();
+                      
+                      // Refresh the QR code details after a short delay
+                      // This ensures the UI has time to update
+                      setTimeout(() => {
+                        refetch();
+                      }, 1000);
                     } catch (error: any) {
+                      console.error("Error linking QR code:", error);
                       handleDownloadStatus(
                         false,
                         `Failed to link QR code: ${error?.message || "Unknown error"}`
@@ -618,7 +659,7 @@ const QRCodeDetailsScreen = () => {
                       </Input>
                     </Box>
 
-                    {/* Files List */}
+                    {/* Files List - Updated to use row click for download */}
                     <FilesList
                       files={getFilteredFiles()}
                       onFilePress={(file) => setSelectedFile(file)}

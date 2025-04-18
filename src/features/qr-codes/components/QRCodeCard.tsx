@@ -63,9 +63,13 @@ export const QRCodeCard: React.FC<QRCodeCardProps> = ({
   // Handle the scanned UUID when scanner closes
   React.useEffect(() => {
     if (scannedUUID && onPhysicalQRLinked) {
+      console.log("Calling onPhysicalQRLinked with UUID:", scannedUUID);
       onPhysicalQRLinked(scannedUUID);
+      
+      // Close the scanner and reset the scanned UUID
+      closeScanner();
     }
-  }, [scannedUUID, onPhysicalQRLinked]);
+  }, [scannedUUID, onPhysicalQRLinked, closeScanner]);
 
   // Animation effect when isCompact changes
   useEffect(() => {

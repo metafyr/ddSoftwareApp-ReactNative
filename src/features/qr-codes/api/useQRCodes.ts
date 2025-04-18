@@ -3,6 +3,7 @@ import { apiClient } from "@shared/api/client";
 import { API_ENDPOINTS } from "@shared/api/endpoints";
 import { QRCode, QRCodeDetailsType } from "@shared/types";
 import { useLocationContext } from "@app/providers/LocationProvider";
+import { useAuth } from "@features/auth/api/useAuth";
 
 interface QRCodeDetailsOptions {
   isPhysicalId?: boolean;
@@ -47,15 +48,30 @@ export const useQRCodeDetails = (
 export const useCreateQRCode = () => {
   const queryClient = useQueryClient();
   const { selectedLocation } = useLocationContext();
+  const { data: userData } = useAuth();
 
   return useMutation({
     mutationFn: async (qrCode: Omit<QRCode, "id" | "created">) => {
+      // Get the organization ID from the user data or selected location
+      const orgId = userData?.orgId || userData?.organizationId || selectedLocation?.org_id;
+      // Get the user ID for creator attribution
+      const userId = userData?.id || userData?.userId;
+      
+      if (!orgId) {
+        throw new Error("Organization ID is required but not available");
+      }
+
+      console.log("Creating QR code with orgId:", orgId, "and userId:", userId);
+      
       const response = await apiClient.request<QRCode>(API_ENDPOINTS.QR_CODES, {
         method: "POST",
         body: {
           ...qrCode,
+          orgId,
           locationId: selectedLocation?.id,
+          creatorId: userId, // Include the creator ID
         },
+        headers: userId ? { 'user-id': userId } : undefined, // Also include in headers for backend fallback
       });
       return response;
     },

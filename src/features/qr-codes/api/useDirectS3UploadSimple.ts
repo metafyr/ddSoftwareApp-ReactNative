@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import * as FileSystem from "expo-file-system";
-import { Platform } from "react-native";
 import { API_ENDPOINTS } from "@shared/api/endpoints";
 import { apiClient } from "@shared/api/client";
-import { API_CONFIG, getApiUrl } from "@/config/apiConfig";
+import { sanitizeFileName, getValidatedUuid } from "@shared/utils/fileUtils";
 
-// Interface for presigned URL response from backend
 interface PresignedUrlResponse {
   uploadUrl: string;
   fileKey: string;
@@ -24,29 +22,35 @@ export const useDirectS3UploadSimple = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  /**
+   * Get a presigned URL for direct S3 upload
+   * Includes special handling for mobile uploads
+   */
   const getPresignedUrl = async ({
     fileName,
     fileType,
     fileSize,
     qrCodeId,
+    orgId,
     folderId,
     isPublic,
     uploadType,
+    userId,
   }: {
     fileName: string;
     fileType: string;
     fileSize: number;
     qrCodeId: string;
+    orgId: string;
     folderId?: string;
     isPublic?: boolean;
     uploadType?: "scanned" | "uploaded";
+    userId?: string;
   }) => {
-    // Sanitize filename
-    const sanitizedFileName = fileName
-      .replace(/\s+/g, "_")
-      .replace(/[()]/g, "")
-      .replace(/[^a-zA-Z0-9_.-]/g, "");
+    // Sanitize filename for storage but keep original for Content-Disposition
+    const sanitizedFileName = sanitizeFileName(fileName);
 
+    // Request a mobile-friendly presigned URL
     const response = await apiClient.request<PresignedUrlResponse>(
       API_ENDPOINTS.PRESIGNED_UPLOAD,
       {
@@ -56,9 +60,15 @@ export const useDirectS3UploadSimple = () => {
           fileType,
           fileSize,
           qrCodeId,
+          orgId,
           folderId,
           isPublic,
           uploadType,
+          userId: getValidatedUuid(userId),
+          // Mobile-specific settings
+          isMobileUpload: true,
+          includeContentType: true,
+          minimizeSignedHeaders: true,
         },
       }
     );
@@ -71,24 +81,32 @@ export const useDirectS3UploadSimple = () => {
     return response;
   };
 
+  /**
+   * Upload a file directly to S3 using presigned URL
+   * Uses multiple methods for compatibility across different React Native environments
+   */
   const upload = async ({
     fileUri,
     fileName,
     fileType,
     fileSize,
     qrCodeId,
+    orgId,
     folderId,
     isPublic = false,
     uploadType = "uploaded",
+    userId,
   }: {
     fileUri: string;
     fileName: string;
     fileType: string;
     fileSize: number;
     qrCodeId: string;
+    orgId: string;
     folderId?: string;
     isPublic?: boolean;
     uploadType?: "scanned" | "uploaded";
+    userId?: string;
   }) => {
     try {
       setIsLoading(true);
@@ -101,185 +119,154 @@ export const useDirectS3UploadSimple = () => {
         fileType,
         fileSize,
         qrCodeId,
+        orgId,
         folderId,
         isPublic,
         uploadType,
+        userId,
       });
 
       // Presigned URL obtained successfully
-      
       let uploadSuccess = false;
+      let uploadResult = null;
 
       try {
-        // Get file info to verify existence
+        // Verify file exists
         const fileInfo = await FileSystem.getInfoAsync(fileUri);
         if (!fileInfo.exists) {
-          throw new Error("File does not exist");
+          throw new Error(`File doesn't exist at path: ${fileUri}`);
         }
 
-        // Prepare for S3 upload with the presigned URL
+        // Create minimal headers for S3
+        const requestHeaders: Record<string, string> = {
+          "Content-Type": fileType,
+          "Content-Disposition": `attachment; filename="${encodeURIComponent(
+            fileName
+          )}"`,
+          "Cache-Control": "max-age=31536000",
+        };
 
-        // Convert file to Base64 for binary upload if needed
-        let finalFileUri = fileUri;
-        let finalContentType = fileType;
+        // Primary method: Direct fetch upload with binary data
+        try {
+          // Read file as base64
+          const fileBase64 = await FileSystem.readAsStringAsync(fileUri, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
 
-        // Ensure we have valid content type for PDFs
-        if (fileType.includes("pdf") && !finalContentType.includes("application/pdf")) {
-          finalContentType = "application/pdf";
-        }
-
-        // Try different approaches for uploading PDFs and large files
-        if (fileType.includes("pdf") || fileSize > 5 * 1024 * 1024) {
-          // Use special handling for PDFs and large files
-          try {
-            // Verify file exists and get details
-            const fileInfo = await FileSystem.getInfoAsync(fileUri);
-            
-            // First, verify file exists
-            const fileDetails = await FileSystem.getInfoAsync(fileUri);
-            if (!fileDetails.exists) {
-              throw new Error(`File doesn't exist at path: ${fileUri}`);
-            }
-            
-            // File exists, proceed with upload
-            
-            // Use the standard uploadAsync method with the correct parameters
-            const response = await FileSystem.uploadAsync(
-              presignedData.uploadUrl,
-              fileUri,
-              {
-                httpMethod: "PUT",
-                headers: {
-                  "Content-Type": finalContentType
-                },
-                // BINARY_CONTENT is the most reliable for PDFs
-                uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT
-              }
-            );
-            
-            // Check the upload response status
-            if (response.status >= 200 && response.status < 300) {
-              uploadSuccess = true;
-            } else {
-              throw new Error(`Upload failed with status: ${response.status}`);
-            }
-          } catch (uploadError) {
-            // Initial approach failed, try fallback method
-            try {
-              // For fallback, try alternative approach with different upload type
-              const response = await FileSystem.uploadAsync(
-                presignedData.uploadUrl,
-                fileUri,
-                {
-                  httpMethod: "PUT",
-                  headers: {
-                    "Content-Type": finalContentType
-                  },
-                  // MULTIPART as fallback if BINARY_CONTENT fails
-                  uploadType: FileSystem.FileSystemUploadType.MULTIPART
-                }
-              );
-              
-              // Check fallback upload response
-              
-              if (response.status < 200 || response.status >= 300) {
-                throw new Error(`Upload to S3 failed with status: ${response.status}`);
-              }
-              
-              uploadSuccess = true;
-            } catch (fallbackError) {
-              // Both upload methods failed
-              throw fallbackError;
-            }
+          // Convert base64 to binary array
+          const binaryString = atob(fileBase64);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
           }
-        } else {
-          // Use FileSystem.uploadAsync for smaller files and images
+
+          // Use fetch API with binary data
+          const fetchResponse = await fetch(presignedData.uploadUrl, {
+            method: "PUT",
+            headers: requestHeaders,
+            body: bytes,
+          });
+
+          if (fetchResponse.status >= 200 && fetchResponse.status < 300) {
+            uploadSuccess = true;
+            uploadResult = {
+              id: presignedData.fileId,
+              url: presignedData.s3Url,
+            };
+          } else {
+            const errorText = await fetchResponse.text();
+            throw new Error(
+              `Upload failed with status: ${fetchResponse.status}`
+            );
+          }
+        } catch (primaryError) {
+          // Fallback: Try with FileSystem.uploadAsync
+          const simpleHeaders = {
+            "Content-Type": fileType,
+          };
+
           const response = await FileSystem.uploadAsync(
             presignedData.uploadUrl,
             fileUri,
             {
               httpMethod: "PUT",
-              headers: {
-                "Content-Type": finalContentType,
-              },
+              headers: simpleHeaders,
               uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
             }
           );
-          
-          if (response.status < 200 || response.status >= 300) {
-            throw new Error(`Upload to S3 failed with status: ${response.status}`);
-          }
-          
-          uploadSuccess = true;
-        }
 
-        // S3 upload completed - uploadSuccess is already set based on the upload method used
-        // No need to check status again, as we've already set uploadSuccess
+          if (response.status >= 200 && response.status < 300) {
+            uploadSuccess = true;
+            uploadResult = {
+              id: presignedData.fileId,
+              url: presignedData.s3Url,
+            };
+          } else {
+            throw new Error(
+              `Fallback upload failed with status: ${response.status}`
+            );
+          }
+        }
 
         // Notify backend that upload is complete
-        if (uploadSuccess && presignedData.fileId) {
-          const completeEndpoint = getApiUrl(
-            API_ENDPOINTS.COMPLETE_UPLOAD(presignedData.fileId)
+        try {
+          const completeEndpoint = API_ENDPOINTS.COMPLETE_UPLOAD(
+            presignedData.fileId
           );
 
-          const completeResponse = await fetch(completeEndpoint, {
+          await apiClient.request(completeEndpoint, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
+            body: {
+              success: uploadSuccess,
+              size: uploadSuccess ? fileSize : 0,
+              fileId: presignedData.fileId,
             },
-            body: JSON.stringify({
-              success: true,
-              size: fileSize,
-            }),
           });
 
-          if (!completeResponse.ok) {
-            // Silent fail - will be caught by error boundary if critical
+          // Invalidate queries to refresh UI if upload was successful
+          if (uploadSuccess) {
+            queryClient.invalidateQueries({
+              queryKey: ["files", "qrCode", qrCodeId],
+            });
+            if (folderId) {
+              queryClient.invalidateQueries({
+                queryKey: ["files", "folder", folderId],
+              });
+            }
+            queryClient.invalidateQueries({
+              queryKey: ["qrCode", "details", qrCodeId],
+            });
+
+            setUploadProgress(100);
           }
+        } catch (notifyError) {
+          // Just log the error but don't fail the upload if notification fails
+          console.error("Error notifying upload status:", notifyError);
         }
 
-        // Invalidate queries to refresh UI
-        queryClient.invalidateQueries({
-          queryKey: ["files", "qrCode", qrCodeId],
-        });
-        if (folderId) {
-          queryClient.invalidateQueries({
-            queryKey: ["files", "folder", folderId],
-          });
-        }
-        queryClient.invalidateQueries({
-          queryKey: ["qrCode", "details", qrCodeId],
-        });
-
-        setUploadProgress(100);
-        return {
-          id: presignedData.fileId,
-          url: presignedData.s3Url,
-        };
+        return (
+          uploadResult || {
+            id: presignedData.fileId,
+            url: presignedData.s3Url,
+          }
+        );
       } catch (uploadError) {
-        // Error handled in catch block
-        
         // If we failed to upload to S3, notify backend to clean up
         if (presignedData.fileId) {
           try {
-            const completeEndpoint = getApiUrl(
-              API_ENDPOINTS.COMPLETE_UPLOAD(presignedData.fileId)
+            const completeEndpoint = API_ENDPOINTS.COMPLETE_UPLOAD(
+              presignedData.fileId
             );
-            // Notify backend of failure
-            
-            await fetch(completeEndpoint, {
+
+            await apiClient.request(completeEndpoint, {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
-              },
-              body: JSON.stringify({
+              body: {
                 success: false,
-              }),
+                fileId: presignedData.fileId,
+              },
             });
           } catch (notifyError) {
-            // Silently handle notification error
             // Silent failure for notification error
           }
         }

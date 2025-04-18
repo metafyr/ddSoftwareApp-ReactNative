@@ -1,5 +1,11 @@
 import React, { useEffect, useCallback } from "react";
-import { Text, useToast, Toast, ToastTitle, ToastDescription } from "@/../components/ui";
+import {
+  Text,
+  useToast,
+  Toast,
+  ToastTitle,
+  ToastDescription,
+} from "@/../components/ui";
 import { Home, QrCode, Calendar, Settings, Scan } from "lucide-react-native";
 import { StyleSheet, Dimensions, View, Pressable } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -39,7 +45,7 @@ const MobileBottomTabs: React.FC<MobileBottomTabsProps> = ({
 }) => {
   const navigation = useNavigation<NavigationProp>();
   const toast = useToast();
-  
+
   // QR code scanner hook
   const {
     isVisible,
@@ -55,26 +61,29 @@ const MobileBottomTabs: React.FC<MobileBottomTabsProps> = ({
   }, [openScanner]);
 
   // Check if the QR code exists
-  const checkQRCodeExists = useCallback(async (uuid: string) => {
-    try {
-      // Navigate to QR details page with isPhysicalId set to true
-      navigation.navigate("QRCodeDetails", {
-        qrId: uuid,
-        isPhysicalId: true,
-      });
-    } catch (error) {
-      toast.show({
-        render: () => (
-          <Toast action="error" variant="solid">
-            <ToastTitle>Error</ToastTitle>
-            <ToastDescription>Failed to process QR code</ToastDescription>
-          </Toast>
-        ),
-        placement: "top",
-        duration: 3000,
-      });
-    }
-  }, [navigation, toast]);
+  const checkQRCodeExists = useCallback(
+    async (uuid: string) => {
+      try {
+        // Navigate to QR details page with isPhysicalId set to true
+        navigation.navigate("QRCodeDetails", {
+          qrId: uuid,
+          isPhysicalId: true,
+        });
+      } catch (error) {
+        toast.show({
+          render: () => (
+            <Toast action="error" variant="solid">
+              <ToastTitle>Error</ToastTitle>
+              <ToastDescription>Failed to process QR code</ToastDescription>
+            </Toast>
+          ),
+          placement: "top",
+          duration: 3000,
+        });
+      }
+    },
+    [navigation, toast]
+  );
 
   // Handle when a UUID is detected
   useEffect(() => {
@@ -119,7 +128,7 @@ const MobileBottomTabs: React.FC<MobileBottomTabsProps> = ({
 
         {/* Center spacing for scan button */}
         <View style={styles.centerSpace} />
-        
+
         {/* Last two tabs */}
         <View style={styles.tabGroup}>
           {bottomTabs.slice(2, 4).map((tab: BottomTab) => (
@@ -159,40 +168,41 @@ const MobileBottomTabs: React.FC<MobileBottomTabsProps> = ({
 };
 
 // Tab item component
-const TabItem: React.FC<TabItemProps> = ({ 
-  tab, 
-  activeTab, 
-  setActiveTab, 
-  getIcon 
+const TabItem: React.FC<TabItemProps> = ({
+  tab,
+  activeTab,
+  setActiveTab,
+  getIcon,
 }) => {
   const isDisabled = tab.disabled;
   const isActive = activeTab === tab.label && !isDisabled;
-  
+
   return (
     <Pressable
       onPress={() => !isDisabled && setActiveTab(tab.label)}
-      style={[
-        styles.tabItem,
-        { opacity: isDisabled ? 0.5 : 1 }
-      ]}
+      style={[styles.tabItem, { opacity: isDisabled ? 0.5 : 1 }]}
       disabled={isDisabled}
       accessibilityRole="tab"
       accessibilityLabel={tab.label}
       accessibilityState={{ selected: isActive, disabled: isDisabled }}
     >
-      <View style={[
-        styles.iconContainer,
-        isActive ? styles.activeIconContainer : {}
-      ]}>
+      <View
+        style={[
+          styles.iconContainer,
+          isActive ? styles.activeIconContainer : {},
+        ]}
+      >
         {getIcon(tab.icon, isActive)}
       </View>
       <Text
         size="xs"
         style={[
           styles.tabText,
-          isDisabled ? styles.disabledText : (
-            isActive ? styles.activeText : styles.inactiveText
-          )
+          isDisabled
+            ? styles.disabledText
+            : isActive
+            ? styles.activeText
+            : styles.inactiveText,
         ]}
       >
         {tab.label}
@@ -208,7 +218,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     height: 72,
-    backgroundColor: "white"
+    backgroundColor: "white",
   },
   tabGroup: {
     flexDirection: "row",
@@ -220,30 +230,30 @@ const styles = StyleSheet.create({
   },
   tabItem: {
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
   },
   iconContainer: {
     padding: 8,
     borderRadius: 8,
   },
   activeIconContainer: {
-    backgroundColor: "rgba(37, 99, 235, 0.1)" // bg-primary-50
+    backgroundColor: "rgba(37, 99, 235, 0.1)", // bg-primary-50
   },
   tabText: {
     marginTop: 2,
   },
   activeText: {
-    color: "#2563EB" // text-primary-900
+    color: "#2563EB", // text-primary-900
   },
   inactiveText: {
-    color: "#6B7280" // text-outline-400
+    color: "#6B7280", // text-outline-400
   },
   disabledText: {
-    color: "#CCCCCC" // text-outline-200
+    color: "#CCCCCC", // text-outline-200
   },
   scanButton: {
     position: "absolute",
-    top: -22,
+    top: 0,
     width: 56,
     height: 56,
     borderRadius: 28,

@@ -14,6 +14,7 @@ import { User } from "@shared/types";
 import { getAuthConfig } from "../config/authConfig";
 import * as SecureStore from "expo-secure-store";
 import { useNavigation } from "@react-navigation/native";
+import Constants from "expo-constants";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -27,11 +28,49 @@ type AuthTokens = {
   issuedAt?: number; // Timestamp when the token was issued
 };
 
-// Define storage key
+// Define storage keys
 const AUTH_TOKENS_KEY = "auth_tokens";
+const APP_VERSION_KEY = "app_version";
 
 // Store auth tokens in memory
 let authTokensStore: AuthTokens | null = null;
+
+/**
+ * Check if app version has changed and perform cleanup if needed
+ * @returns Promise resolving to boolean indicating if version changed
+ */
+const checkAppVersionAndCleanup = async (): Promise<boolean> => {
+  try {
+    // Get current app version from Expo Constants
+    const currentVersion = Constants.expoConfig?.version || "1.0.0";
+
+    // Get stored version
+    const storedVersion = await SecureStore.getItemAsync(APP_VERSION_KEY);
+
+    // If versions don't match or no stored version, cleanup and update
+    if (!storedVersion || storedVersion !== currentVersion) {
+      console.log(
+        `App version changed: ${
+          storedVersion || "none"
+        } -> ${currentVersion}. Clearing auth tokens.`
+      );
+
+      // Clear the tokens
+      await SecureStore.deleteItemAsync(AUTH_TOKENS_KEY);
+      authTokensStore = null;
+
+      // Store new version
+      await SecureStore.setItemAsync(APP_VERSION_KEY, currentVersion);
+
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("[checkAppVersionAndCleanup] Error:", error);
+    return false;
+  }
+};
 
 /**
  * Save auth tokens to secure storage
@@ -83,10 +122,20 @@ const isTokenExpired = (tokens: AuthTokens): boolean => {
   // Calculate expiration time (convert expiresIn from seconds to milliseconds)
   const expirationTime = tokens.issuedAt + tokens.expiresIn * 1000;
 
-  // Consider token expired if it's within 5 minutes of expiration
-  const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
+  // Increase buffer time to 15 minutes for more conservative refreshing
+  const bufferTime = 15 * 60 * 1000; // 15 minutes in milliseconds
 
-  return now > expirationTime - bufferTime;
+  const isExpired = now > expirationTime - bufferTime;
+
+  if (isExpired) {
+    console.log(
+      `Token will expire in ${Math.floor(
+        (expirationTime - now) / 1000 / 60
+      )} minutes. Considering as expired.`
+    );
+  }
+
+  return isExpired;
 };
 
 /**
@@ -106,8 +155,8 @@ const extractEmailFromToken = (token: string): string | null => {
     // Decode the payload (middle part)
     const base64Url = parts[1];
     // Handle any base64url encoding
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+
     // Safer way to decode base64 in React Native
     let payload;
     try {
@@ -115,27 +164,30 @@ const extractEmailFromToken = (token: string): string | null => {
       const rawPayload = atob(base64);
       payload = JSON.parse(rawPayload);
     } catch (e) {
-      console.warn('[extractEmailFromToken] Simple decode failed, trying alternative method');
+      console.warn(
+        "[extractEmailFromToken] Simple decode failed, trying alternative method"
+      );
       try {
         // Alternative approach if the simple one fails
         const rawData = atob(base64);
         const strData = Array.from(rawData)
-          .map(char => char.charCodeAt(0))
-          .map(byte => String.fromCharCode(byte))
-          .join('');
+          .map((char) => char.charCodeAt(0))
+          .map((byte) => String.fromCharCode(byte))
+          .join("");
         payload = JSON.parse(strData);
       } catch (innerError) {
-        console.error('[extractEmailFromToken] Alternative decode failed:', innerError);
+        console.error(
+          "[extractEmailFromToken] Alternative decode failed:",
+          innerError
+        );
         throw innerError;
       }
     }
-    
-    console.log('[extractEmailFromToken] Token payload keys:', Object.keys(payload));
-    
+
     // Try various common claims for email
-    const email = payload.email || payload.mail || payload['cognito:email'] || null;
-    console.log('[extractEmailFromToken] Extracted email:', email);
-    
+    const email =
+      payload.email || payload.mail || payload["cognito:email"] || null;
+
     return email;
   } catch (error) {
     console.error(
@@ -151,11 +203,14 @@ export const useAuth = () => {
     useState<typeof authTokensStore>(authTokensStore);
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
   const navigation = useNavigation();
-  
+
   // Try to extract email from both token types, but prefer access token
   const email = authTokens?.accessToken
-    ? extractEmailFromToken(authTokens.accessToken) || (authTokens?.idToken ? extractEmailFromToken(authTokens.idToken) : null)
-    : (authTokens?.idToken ? extractEmailFromToken(authTokens.idToken) : null);
+    ? extractEmailFromToken(authTokens.accessToken) ||
+      (authTokens?.idToken ? extractEmailFromToken(authTokens.idToken) : null)
+    : authTokens?.idToken
+    ? extractEmailFromToken(authTokens.idToken)
+    : null;
   const queryClient = useQueryClient();
   const config = useMemo(() => getAuthConfig(), []);
   const discoveryDocument = useMemo(() => config.discoveryDocument, [config]);
@@ -165,6 +220,17 @@ export const useAuth = () => {
     const initializeTokens = async () => {
       try {
         setIsLoadingTokens(true);
+
+        // Check if app version has changed and clear tokens if needed
+        const versionChanged = await checkAppVersionAndCleanup();
+        if (versionChanged) {
+          console.log("App version changed, tokens cleared");
+          queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+          queryClient.invalidateQueries({ queryKey: ["isAuthenticated"] });
+          setIsLoadingTokens(false);
+          return;
+        }
+
         const storedTokens = await loadAuthTokens();
 
         if (storedTokens) {
@@ -193,10 +259,15 @@ export const useAuth = () => {
               console.log("Token refreshed successfully");
             } catch (refreshError) {
               console.error("Error refreshing token:", refreshError);
-              // If refresh fails, we'll try to use the existing token
-              // or let the user re-authenticate
-              authTokensStore = storedTokens;
-              setAuthTokens(storedTokens);
+
+              // Clear the expired tokens instead of reusing them
+              console.log("Clearing expired tokens due to refresh failure");
+              authTokensStore = null;
+              await saveAuthTokens(null);
+              setAuthTokens(null);
+
+              // Don't redirect here - the app will detect missing tokens
+              // and redirect as needed based on authentication state
             }
           } else {
             // Use stored tokens as-is
@@ -221,19 +292,28 @@ export const useAuth = () => {
   // Add debugging logs for authentication state
   useEffect(() => {
     if (!isLoadingTokens) {
-      console.log('Auth state:', {
+      console.log("Auth state:", {
         hasAccessToken: !!authTokens?.accessToken,
-        accessTokenLength: authTokens?.accessToken ? authTokens.accessToken.length : 0,
+        accessTokenLength: authTokens?.accessToken
+          ? authTokens.accessToken.length
+          : 0,
         hasIdToken: !!authTokens?.idToken,
-        tokenTypes: authTokens ? Object.keys(authTokens).filter(key => 
-          ['accessToken', 'idToken', 'refreshToken'].includes(key) && !!authTokens[key as keyof AuthTokens]
-        ) : [],
+        tokenTypes: authTokens
+          ? Object.keys(authTokens).filter(
+              (key) =>
+                ["accessToken", "idToken", "refreshToken"].includes(key) &&
+                !!authTokens[key as keyof AuthTokens]
+            )
+          : [],
         email,
-        tokensLoaded: !isLoadingTokens
+        tokensLoaded: !isLoadingTokens,
       });
-      
+
       if (authTokens?.accessToken) {
-        console.log('AccessToken prefix:', authTokens.accessToken.substring(0, 20) + '...');
+        console.log(
+          "AccessToken prefix:",
+          authTokens.accessToken.substring(0, 20) + "..."
+        );
       }
     }
   }, [isLoadingTokens, authTokens, email]);
@@ -242,38 +322,64 @@ export const useAuth = () => {
     queryKey: ["currentUser"],
     queryFn: async () => {
       if (!authTokens?.accessToken || !email) {
-        console.log('Skipping API call - missing token or email:', { 
+        console.log("Skipping API call - missing token or email:", {
           hasAccessToken: !!authTokens?.accessToken,
-          email 
+          email,
         });
         return null;
       }
 
-      console.log('Setting access token for API request, token length:', authTokens.accessToken.length);
+      console.log(
+        "Setting access token for API request, token length:",
+        authTokens.accessToken.length
+      );
       apiClient.setAuthToken(authTokens.accessToken);
-      
-      console.log('Making API request to:', API_ENDPOINTS.USER_BY_EMAIL(email));
+
+      console.log("Making API request to:", API_ENDPOINTS.USER_BY_EMAIL(email));
       try {
         const user = await apiClient.request<User>(
           API_ENDPOINTS.USER_BY_EMAIL(email)
         );
-        console.log('API request successful, received user data');
+        console.log("API request successful, received user data");
         return user;
       } catch (error) {
-        console.error('API request failed:', error);
-        
-        // Check if the error is a 401 (Unauthorized) or 404 (Not Found)
-        if (error && typeof error === 'object' && 'status' in error) {
+        console.error("API request failed:", error);
+
+        // Enhanced error handling for auth errors
+        if (error && typeof error === "object" && "status" in error) {
           const apiError = error as { status: number };
-          if (apiError.status === 401 || apiError.status === 404) {
-            // Navigate to the UserNotFound screen
-            console.log('User not found in system, redirecting to UserNotFound screen');
+
+          if (apiError.status === 401) {
+            console.log(
+              "Authentication failed - token likely expired or invalid"
+            );
+
+            // Clear tokens to force re-login
+            authTokensStore = null;
+            await saveAuthTokens(null);
+            setAuthTokens(null);
+
+            // Invalidate queries
+            queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+            queryClient.invalidateQueries({ queryKey: ["isAuthenticated"] });
+
+            // Navigate after a short delay
             setTimeout(() => {
-              navigation.navigate('UserNotFound' as never);
+              navigation.navigate("Login" as never);
+            }, 300);
+
+            throw new Error("Session expired. Please log in again.");
+          } else if (apiError.status === 404) {
+            // Navigate to the UserNotFound screen
+            console.log(
+              "User not found in system, redirecting to UserNotFound screen"
+            );
+            setTimeout(() => {
+              navigation.navigate("UserNotFound" as never);
             }, 300);
           }
         }
-        
+
         throw error;
       }
     },
@@ -430,33 +536,36 @@ export const useIsAuthenticated = () => {
 
       // First check memory
       if (authTokensStore?.accessToken) {
-        console.log('Auth in memory: access token found');
+        console.log("Auth in memory: access token found");
         setIsChecking(false);
         return true;
       }
 
       // If not in memory, try to load from storage
       try {
-        console.log('Checking stored tokens');
+        console.log("Checking stored tokens");
         const storedTokens = await loadAuthTokens();
         if (storedTokens) {
-          console.log('Found stored tokens with:', 
-            Object.keys(storedTokens).filter(key => 
-              ['accessToken', 'idToken', 'refreshToken'].includes(key) && !!storedTokens[key as keyof AuthTokens]
+          console.log(
+            "Found stored tokens with:",
+            Object.keys(storedTokens).filter(
+              (key) =>
+                ["accessToken", "idToken", "refreshToken"].includes(key) &&
+                !!storedTokens[key as keyof AuthTokens]
             )
           );
-          
+
           if (storedTokens.accessToken) {
             // Update memory store
-            console.log('Valid access token found in storage');
+            console.log("Valid access token found in storage");
             authTokensStore = storedTokens;
             setIsChecking(false);
             return true;
           } else {
-            console.log('No access token found in stored tokens');
+            console.log("No access token found in stored tokens");
           }
         } else {
-          console.log('No stored tokens found');
+          console.log("No stored tokens found");
         }
       } catch (error) {
         console.error("Error checking authentication status:", error);

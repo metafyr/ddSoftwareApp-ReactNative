@@ -96,6 +96,7 @@ const QRCodesScreen = () => {
         locationId: currentLocation.id,
         enabledFunctions: data.enabledFunctions,
         createdAt: new Date().toISOString(),
+        // Note: orgId is now handled in the useCreateQRCode hook
       });
 
       // Show success toast

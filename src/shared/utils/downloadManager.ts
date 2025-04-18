@@ -5,7 +5,7 @@ import * as Linking from "expo-linking";
 import { Platform, Share } from "react-native";
 import * as IntentLauncher from "expo-intent-launcher";
 import * as Sharing from "expo-sharing";
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from "expo-secure-store";
 
 // Configure notifications for downloads
 Notifications.setNotificationHandler({
@@ -81,7 +81,7 @@ export class DownloadManager {
 
     // Setup notification listener only once
     this.setupNotificationListener();
-    
+
     // Save instance to singleton
     downloadManagerInstance = this;
   }
@@ -131,7 +131,7 @@ export class DownloadManager {
           console.log("Intent activity already in progress. Skipping.");
           return;
         }
-        
+
         this.isIntentActivityInProgress = true;
 
         // Determine correct MIME type based on file extension
@@ -180,14 +180,11 @@ export class DownloadManager {
         // Use direct VIEW intent with specific MIME type
         const flags = 0x00000001 | 0x00000001; // FLAG_ACTIVITY_NEW_TASK | FLAG_GRANT_READ_URI_PERMISSION
 
-        await IntentLauncher.startActivityAsync(
-          "android.intent.action.VIEW",
-          {
-            data: contentUri,
-            flags: flags,
-            type: resolvedMimeType,
-          }
-        );
+        await IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+          data: contentUri,
+          flags: flags,
+          type: resolvedMimeType,
+        });
 
         this.isIntentActivityInProgress = false;
         return;
@@ -201,8 +198,9 @@ export class DownloadManager {
       }
     } catch (error) {
       // Unified error handling
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
       // Only show one error notification with unique ID if provided
       if (notificationId) {
         await this.showNotification(
@@ -262,15 +260,19 @@ export class DownloadManager {
   }
 
   // Check if a notification was recently shown to avoid duplicates
-  private async hasRecentNotification(notificationId: string): Promise<boolean> {
+  private async hasRecentNotification(
+    notificationId: string
+  ): Promise<boolean> {
     // Check in-memory set first (for fast checking)
     if (this.recentNotifications.has(notificationId)) {
       return true;
     }
-    
+
     try {
       // Check in secure storage (for persistent checking)
-      const storedValue = await SecureStore.getItemAsync(`notification_${notificationId}`);
+      const storedValue = await SecureStore.getItemAsync(
+        `notification_${notificationId}`
+      );
       return storedValue !== null;
     } catch (error) {
       console.warn("Error checking notification history:", error);
@@ -282,12 +284,15 @@ export class DownloadManager {
   private async recordNotification(notificationId: string): Promise<void> {
     // Add to in-memory set
     this.recentNotifications.add(notificationId);
-    
+
     try {
       // Store with expiration time (24 hours)
       const expiration = Date.now() + 24 * 60 * 60 * 1000;
-      await SecureStore.setItemAsync(`notification_${notificationId}`, expiration.toString());
-      
+      await SecureStore.setItemAsync(
+        `notification_${notificationId}`,
+        expiration.toString()
+      );
+
       // Clean up old notifications periodically
       this.cleanupOldNotifications();
     } catch (error) {
@@ -315,19 +320,21 @@ export class DownloadManager {
       if (!data) {
         return;
       }
-      
+
       // Use a unique ID for the notification
-      const notificationId = data.notificationId || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
+      const notificationId =
+        data.notificationId ||
+        `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
       // Check for duplicate notifications
       if (await this.hasRecentNotification(notificationId)) {
         console.log(`Skipping duplicate notification: ${notificationId}`);
         return;
       }
-      
+
       // Record this notification to prevent duplicates
       await this.recordNotification(notificationId);
-      
+
       // Schedule the notification with the unique ID
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -373,11 +380,14 @@ export class DownloadManager {
         await FileSystem.deleteAsync(downloadPath, { idempotent: true });
       }
 
-      // Create download resumable
       const downloadResumable = FileSystem.createDownloadResumable(
         url,
         downloadPath,
-        {},
+        {
+          headers: {
+            Accept: mimeType || "*/*",
+          },
+        },
         (downloadProgress) => {
           const progress =
             downloadProgress.totalBytesWritten /
@@ -398,8 +408,20 @@ export class DownloadManager {
         throw new Error("Download failed");
       }
 
+      // Verify file exists and has content
+      const downloadedFileInfo = await FileSystem.getInfoAsync(result.uri);
+      if (!downloadedFileInfo.exists) {
+        throw new Error("Downloaded file not found");
+      }
+      if (downloadedFileInfo.size === 0) {
+        throw new Error("Downloaded file is empty");
+      }
+
       // Determine the proper MIME type
-      const actualMimeType = mimeType || this.getMimeTypeFromFilename(name);
+      const actualMimeType =
+        result.headers["Content-Type"] ||
+        mimeType ||
+        this.getMimeTypeFromFilename(name);
 
       // For Android, find the best URI to use
       let finalUri = result.uri;
@@ -436,41 +458,40 @@ export class DownloadManager {
       }
 
       // Create system notification for when app is in background
-      await this.showNotification(
-        "Download Complete", 
-        `Tap to open ${name}`, 
-        {
-          uri: finalUri,
-          mimeType: actualMimeType,
-          filename: name,
-          notificationId: `complete-${downloadId}`,
-        }
-      );
-      
+      await this.showNotification("Download Complete", `Tap to open ${name}`, {
+        uri: finalUri,
+        mimeType: actualMimeType,
+        filename: name,
+        notificationId: `complete-${downloadId}`,
+      });
+
       // Automatically open the file immediately after download
       // Small delay ensures UI updates before opening the file
       setTimeout(() => {
         this.openFile(finalUri, actualMimeType, name);
       }, 500);
-      
+
       onSuccess?.();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
 
       // Show error via toast callback
       if (this.toastCallbacks.onError) {
-        this.toastCallbacks.onError(`Failed to download ${name}: ${errorMessage}`);
+        this.toastCallbacks.onError(
+          `Failed to download ${name}: ${errorMessage}`
+        );
       }
 
       // Create system notification for when app is in background
       await this.showNotification(
         "Download Failed",
         `Failed to download ${name}: ${errorMessage}`,
-        { 
+        {
           notificationId: `error-${downloadId}`,
-          uri: '', 
-          mimeType: '', 
-          filename: name
+          uri: "",
+          mimeType: "",
+          filename: name,
         }
       );
 
@@ -485,32 +506,38 @@ export class DownloadManager {
     }
 
     // Create new listener
-    this.notificationListener = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as NotificationData;
+    this.notificationListener =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        const data = response.notification.request.content
+          .data as NotificationData;
 
-      // Skip actions for progress notifications
-      if (data.isProgressNotification) {
-        return;
-      }
-
-      if (data && data.uri) {
-        const uri = data.uri;
-        const mimeType = data.mimeType || this.getMimeTypeFromFilename(data.filename || "file");
-        const filename = data.filename || "file";
-        const notificationId = data.notificationId;
-
-        // Check if an intent activity is already in progress
-        if (this.isIntentActivityInProgress) {
-          console.log("Intent activity already in progress. Skipping file open.");
+        // Skip actions for progress notifications
+        if (data.isProgressNotification) {
           return;
         }
 
-        // Open file with a slight delay to ensure UI is ready
-        setTimeout(() => {
-          this.openFile(uri, mimeType, filename, notificationId);
-        }, 300);
-      }
-    });
+        if (data && data.uri) {
+          const uri = data.uri;
+          const mimeType =
+            data.mimeType ||
+            this.getMimeTypeFromFilename(data.filename || "file");
+          const filename = data.filename || "file";
+          const notificationId = data.notificationId;
+
+          // Check if an intent activity is already in progress
+          if (this.isIntentActivityInProgress) {
+            console.log(
+              "Intent activity already in progress. Skipping file open."
+            );
+            return;
+          }
+
+          // Open file with a slight delay to ensure UI is ready
+          setTimeout(() => {
+            this.openFile(uri, mimeType, filename, notificationId);
+          }, 300);
+        }
+      });
   }
 
   // Clean up method to remove listeners
