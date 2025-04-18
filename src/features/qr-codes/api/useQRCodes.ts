@@ -55,10 +55,14 @@ export const useCreateQRCode = () => {
       // Get the organization ID from the user data or selected location
       const orgId = userData?.orgId || userData?.organizationId || selectedLocation?.org_id;
       // Get the user ID for creator attribution
-      const userId = userData?.id || userData?.userId;
+      const userId = userData?.id;
       
       if (!orgId) {
         throw new Error("Organization ID is required but not available");
+      }
+
+      if (!userId) {
+        throw new Error("User ID is required for QR code creation");
       }
 
       console.log("Creating QR code with orgId:", orgId, "and userId:", userId);
@@ -69,9 +73,8 @@ export const useCreateQRCode = () => {
           ...qrCode,
           orgId,
           locationId: selectedLocation?.id,
-          creatorId: userId, // Include the creator ID
+          creatorId: userId, // Creator ID is now required by the backend
         },
-        headers: userId ? { 'user-id': userId } : undefined, // Also include in headers for backend fallback
       });
       return response;
     },
@@ -79,6 +82,11 @@ export const useCreateQRCode = () => {
       // Invalidate the QR codes query to refetch the list
       queryClient.invalidateQueries({
         queryKey: ["qrCodes", selectedLocation?.id],
+      });
+      
+      // Also invalidate dashboard data to update statistics
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard"],
       });
     },
   });
@@ -103,6 +111,8 @@ export const useUpdateQRCode = () => {
       queryClient.setQueryData(["qrCode", data.id], data);
       // Invalidate the QR codes list
       queryClient.invalidateQueries({ queryKey: ["qrCodes", data.locationId] });
+      // Invalidate dashboard data to update statistics
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 };
@@ -124,6 +134,8 @@ export const useDeleteQRCode = () => {
       queryClient.invalidateQueries({
         predicate: (query) => query.queryKey[0] === "qrCodes",
       });
+      // Invalidate dashboard data to update statistics
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 };

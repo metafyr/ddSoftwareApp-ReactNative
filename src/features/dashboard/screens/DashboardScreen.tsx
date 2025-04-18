@@ -10,18 +10,37 @@ import {
 import { DashboardCard } from "../components";
 import { useDashboard } from "../api";
 import { LoadingScreen, ErrorScreen } from "@/shared/ui";
+import { useAuth } from "@/features/auth/api";
 
 const DashboardScreen = () => {
-  const { data: dashboardData, isLoading, error, refetch } = useDashboard();
+  // Get the current authenticated user
+  const { data: user, isLoading: isLoadingUser } = useAuth();
+  
+  // Get the organization ID from the user data
+  const orgId = user?.organizationId || user?.orgId;
+  
+  // Fetch dashboard data with the organization ID
+  const { 
+    data: dashboardData, 
+    isLoading: isLoadingDashboard, 
+    error, 
+    refetch 
+  } = useDashboard(orgId);
 
-  if (isLoading) {
+  // Show loading screen if either user or dashboard data is loading
+  if (isLoadingUser || isLoadingDashboard) {
     return <LoadingScreen message="Loading dashboard data..." />;
   }
 
-  if (error || !dashboardData) {
+  // Show error screen if there's an error or no orgId available
+  if (error || !dashboardData || !orgId) {
+    const errorMessage = !orgId 
+      ? "Unable to determine your organization. Please contact support."
+      : "Failed to load dashboard data. Please try again.";
+      
     return (
       <ErrorScreen
-        message="Failed to load dashboard data. Please try again."
+        message={errorMessage}
         onRetry={refetch}
       />
     );

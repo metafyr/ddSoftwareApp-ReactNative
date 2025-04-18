@@ -41,12 +41,12 @@ export const AddQRCodeModal = ({
   const handleFunctionChange = (values: any) => {
     // Ensure we're handling the values as an array
     const selectedValues = Array.isArray(values) ? values : [values];
-    
+
     // Always include 'files' as it's non-removable
-    if (!selectedValues.includes('files')) {
-      selectedValues.push('files');
+    if (!selectedValues.includes("files")) {
+      selectedValues.push("files");
     }
-    
+
     setSelectedFunctions(selectedValues);
   };
 
@@ -101,11 +101,13 @@ export const AddQRCodeModal = ({
                 selected={selectedFunctions}
                 onChange={(values) => {
                   // Ensure 'files' is always included
-                  const newValues = values.includes('files') ? values : [...values, 'files'];
+                  const newValues = values.includes("files")
+                    ? values
+                    : [...values, "files"];
                   setSelectedFunctions(newValues);
                 }}
                 placeholder="Select functions"
-                disabledValues={['files']} // Make 'files' non-removable
+                disabledValues={["files"]} // Make 'files' non-removable
               />
             </Box>
           </VStack>
