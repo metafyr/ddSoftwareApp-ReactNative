@@ -27,6 +27,8 @@ const DashboardCard = ({
   const colorMap: Record<string, string> = {
     "text-primary-500": "#3B82F6",
     "text-success-500": "#22C55E",
+    "text-error-500": "#EF4444",
+    "text-typography-500": "#6B7280",
   };
 
   const getColorFromClass = (colorClass: string) => {
